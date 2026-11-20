@@ -19,3 +19,10 @@ export const SCOPE_ID = `app:${APP_ID}`
 
 /** Roles and display config — imported from SDK (single source of truth) */
 export { ROLES, ROLE_CONFIG, type Role } from 'deepspace'
+
+/** Wording for DeepSpace's sign-in box. The box itself is the platform's; these two lines are ours.
+ *  Added after the app's own first-run test found that newcomers saw no way to create an account. */
+export const SIGN_IN_COPY = {
+  title: 'Sign in to First-run tester',
+  description: 'New here? Continuing with Google or GitHub creates your free account.',
+}

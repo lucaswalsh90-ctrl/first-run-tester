@@ -64,7 +64,7 @@ export default function Landing() {
 
           <p className="mt-16 text-sm text-muted-foreground">
             Testing your own app needs a free DeepSpace account: sign in with Google or GitHub, and either one
-            creates the account if you're new. A test uses about 50 to 90 of your own DeepSpace credits, and a
+            creates the account if you're new. A test uses about 60 to 90 of your own DeepSpace credits, and a
             free account comes with 500 a month. The sample costs nothing.
           </p>
           <p className="mt-3 text-sm text-muted-foreground">

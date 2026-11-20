@@ -17,6 +17,7 @@ import { useState } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import { AuthGate, AuthOverlay } from 'deepspace'
 import { Button } from '@/components/ui'
+import { SIGN_IN_COPY } from '@/constants'
 
 export default function ProtectedLayout() {
   return (
@@ -30,31 +31,39 @@ function SignedOutPanel() {
   const [showAuthModal, setShowAuthModal] = useState(false)
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center px-6 py-20">
-      <div className="w-full max-w-sm rounded-lg border border-border bg-card p-8 text-center">
+    <div className="flex min-h-[60vh] items-center justify-center px-6 py-16">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-8">
         <h1 className="text-lg font-semibold text-foreground">Sign in to test your own app</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Use Google or GitHub. If you're new, either one creates your free account. Tests are paid from your
-          own DeepSpace credits, so we need to know who you are.
+        <p className="mt-2 text-sm text-muted-foreground">Three steps, about two minutes:</p>
+        <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-foreground">
+          <li>Sign in with Google or GitHub. If you're new, either one creates your free account.</li>
+          <li>Paste your app's public link and say what a newcomer should be able to do.</li>
+          <li>Watch an AI newcomer click through it, then get your fix list.</li>
+        </ol>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Tests are paid from your own DeepSpace credits (a free account includes 500 a month), which is why
+          you need to sign in first.
         </p>
         <Button className="mt-6 w-full" onClick={() => setShowAuthModal(true)}>
-          Sign in
+          Sign in to start
         </Button>
-        <Link
-          to="/"
-          className="mt-4 inline-block text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Back to home
-        </Link>
-        <Link
-          to="/sample"
-          className="mt-2 block text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          Or watch the free sample, no sign-in needed
-        </Link>
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <Link
+            to="/sample"
+            className="text-sm text-foreground underline underline-offset-4 hover:opacity-80"
+          >
+            Not ready? Watch the free sample, no sign-in needed
+          </Link>
+          <Link
+            to="/"
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Back to the start page
+          </Link>
+        </div>
       </div>
 
-      {showAuthModal && <AuthOverlay onClose={() => setShowAuthModal(false)} />}
+      {showAuthModal && <AuthOverlay {...SIGN_IN_COPY} onClose={() => setShowAuthModal(false)} />}
     </div>
   )
 }

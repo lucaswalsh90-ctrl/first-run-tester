@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutations, useQuery } from 'deepspace'
-import { Badge, Button, Input, Label, Textarea, useToast } from '@/components/ui'
+import { Badge, Button, ConfirmModal, Input, Label, Textarea, useToast } from '@/components/ui'
 import { callAction } from '@/lib/actions'
 import type { Run, Site } from '@/lib/types'
 
@@ -17,7 +17,9 @@ export default function HomePage() {
   const { error } = useToast()
   const { records: sites, status } = useQuery<Site>('sites', { orderBy: 'createdAt', orderDir: 'desc' })
   const { records: runs } = useQuery<Run>('runs', { orderBy: 'createdAt', orderDir: 'desc' })
+  const { remove } = useMutations<Site>('sites')
   const [busy, setBusy] = useState<string | null>(null)
+  const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null)
 
   async function start(name: 'startTest' | 'startSample', params: Record<string, unknown>, key: string) {
     setBusy(key)
@@ -70,13 +72,22 @@ export default function HomePage() {
                       </a>
                       <p className="mt-1 text-sm text-muted-foreground">Goal: {site.data.goal}</p>
                     </div>
-                    <Button
-                      size="sm"
-                      disabled={busy !== null}
-                      onClick={() => start('startTest', { siteId: site.recordId }, site.recordId)}
-                    >
-                      {busy === site.recordId ? 'Starting…' : 'Run a first-run test'}
-                    </Button>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setRemoving({ id: site.recordId, name: site.data.name })}
+                      >
+                        Remove
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={busy !== null}
+                        onClick={() => start('startTest', { siteId: site.recordId }, site.recordId)}
+                      >
+                        {busy === site.recordId ? 'Starting…' : 'Run a first-run test'}
+                      </Button>
+                    </div>
                   </div>
                   {siteRuns.length > 0 && (
                     <ul className="mt-3 space-y-1 border-t border-border pt-3">
@@ -97,6 +108,19 @@ export default function HomePage() {
           </ul>
         )}
       </section>
+
+      <ConfirmModal
+        open={removing !== null}
+        onClose={() => setRemoving(null)}
+        onConfirm={() => {
+          if (removing) remove(removing.id)
+          setRemoving(null)
+        }}
+        title={`Remove ${removing?.name ?? 'this app'}?`}
+        description="It disappears from your list, along with the links to its past tests."
+        confirmText="Remove"
+        variant="destructive"
+      />
     </div>
   )
 }
@@ -163,7 +187,7 @@ function AddSite() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Each real test runs two AI browser sessions and costs about 50 to 90 DeepSpace credits from your own account.
+        Each real test runs two AI browser sessions and costs about 60 to 90 DeepSpace credits from your own account.
         The agent can't get past Google sign-in or verification codes.
       </p>
       <Button type="submit">Add app</Button>

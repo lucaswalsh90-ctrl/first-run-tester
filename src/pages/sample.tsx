@@ -103,7 +103,7 @@ export default function SamplePage() {
         <footer className="mt-12 rounded-lg border border-border p-5">
           <h2 className="font-medium text-foreground">Try it on your own app</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sign in with Google or GitHub (either one creates your account if you're new). A test uses about 50
+            Sign in with Google or GitHub (either one creates your account if you're new). A test uses about 60
             to 90 of your own DeepSpace credits; a free DeepSpace account comes with 500 a month.
           </p>
           <Link
