@@ -45,10 +45,10 @@ export default function Landing() {
               Test your app
             </Link>
             <Link
-              to="/home"
+              to="/sample"
               className="inline-flex items-center rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
             >
-              Watch a free sample
+              Watch a free sample (no sign-in)
             </Link>
           </div>
 
@@ -63,9 +63,14 @@ export default function Landing() {
           </ol>
 
           <p className="mt-16 text-sm text-muted-foreground">
-            Built on DeepSpace. The browser agent runs through Apify and the fix list is written by Claude. Each
-            test is paid from your own DeepSpace credits. The agent can't get past Google sign-in or verification
-            codes yet.
+            Testing your own app needs a free DeepSpace account: sign in with Google or GitHub, and either one
+            creates the account if you're new. A test uses about 50 to 90 of your own DeepSpace credits, and a
+            free account comes with 500 a month. The sample costs nothing.
+          </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Built on DeepSpace. The browser agent runs through Apify and the fix list is written by Claude. One
+            limit to know: if the app you're testing sits behind Google sign-in or emailed codes, the agent can
+            only test up to that point.
           </p>
         </div>
       </div>
