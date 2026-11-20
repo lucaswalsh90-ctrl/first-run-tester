@@ -48,7 +48,8 @@ export default function SamplePage() {
             would get for your own app. Nothing is being charged and you don't need an account.
           </p>
           <p className="mt-2">
-            The AI newcomer was asked to: <strong>{SAMPLE_SITE.goal}</strong>.
+            Two AI newcomers tried that app. One just looked around to work out what the site is. The other
+            was given a goal: <strong>{SAMPLE_SITE.goal}</strong>.
           </p>
         </div>
 
@@ -74,8 +75,9 @@ export default function SamplePage() {
         <section className="mt-12">
           <h2 className="text-lg font-semibold text-foreground">2. What the newcomer did, step by step</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Two browser sessions ran at the same time. The bar under each step shows how sure the agent was.
-            Low numbers mark the places a real newcomer would hesitate.
+            Two browser sessions ran at the same time, each with its own job (shown under its name). The bar
+            under each step shows how sure the agent was. Low numbers mark the places a real newcomer would
+            hesitate.
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {MISSIONS.map((m) => (

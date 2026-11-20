@@ -26,6 +26,13 @@ export function Elapsed({ from, to }: { from: number; to?: number }) {
   )
 }
 
+/** One line under each session's title, so it is clear the sessions have different jobs. */
+const SESSION_JOB: Record<string, string> = {
+  'First look': 'Arrives cold with no goal and works out what the site is for.',
+  'Main goal': 'Tries to reach the goal with no instructions.',
+  Retest: 'Checks one problem again after a fix.',
+}
+
 export function MissionCard({ mission, startedAt, sample }: { mission: Mission; startedAt: number; sample: boolean }) {
   const steps = mission.steps ?? []
   return (
@@ -42,8 +49,11 @@ export function MissionCard({ mission, startedAt, sample }: { mission: Mission; 
           <Badge variant={mission.succeeded ? 'success' : 'warning'}>{mission.succeeded ? 'Reached goal' : 'Got stuck'}</Badge>
         )}
       </div>
+      {SESSION_JOB[mission.title] && (
+        <p className="mt-1 text-sm text-muted-foreground">{SESSION_JOB[mission.title]}</p>
+      )}
       <details className="mt-2">
-        <summary className="cursor-pointer text-xs text-muted-foreground">What the agent was told</summary>
+        <summary className="cursor-pointer text-xs text-muted-foreground">The exact instructions it was given</summary>
         <p className="mt-1 text-xs text-muted-foreground">{mission.task}</p>
       </details>
 
