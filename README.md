@@ -29,7 +29,13 @@ The person who reads the fix list usually isn't the one who fixes it. Their codi
 npx deepspace agent invoke first-run-tester first_run_fix_list --input '{"url":"https://my-app.app.space"}' --json
 ```
 
-Every report shows this command for its own test, next to a "Copy all fix prompts" button that puts the whole list in one paste. A website can't push a prompt into a coding agent, so the report offers the two things that work: paste once, or let the agent fetch.
+Every report shows this command for its own test. A website can't open your terminal or type into a coding agent, because browsers forbid it. So the report offers the three things that do work, and each is one step:
+
+- **Open in Claude Code, Cursor or Codex.** A link in the format each maker documents (`claude-cli://open?q=`, `https://cursor.com/link/prompt?text=`, `codex://new?prompt=`) opens the agent on your computer with a short prompt already in the box. The prompt tells the agent to run the command above. Nothing is sent until you press Enter.
+- **Copy all fix prompts.** The whole list in one paste.
+- **Let the agent fetch it.** Give your agent the command.
+
+The links carry a short prompt and leave the fix list to the command, because Claude Code caps a link's prompt at 5,000 characters and Cursor caps the whole link at 10,000. See [src/lib/handoff.ts](src/lib/handoff.ts).
 
 The command returns the ranked problems, each with its fix prompt and a "done when" check. A second tool, `first_run_reports`, lists your apps and their latest tests. [agent-skill/first-run-fixes/SKILL.md](agent-skill/first-run-fixes/SKILL.md) is a small skill that walks a coding agent through the loop. To use it, copy that folder into your project's `.claude/skills/`.
 
@@ -125,6 +131,20 @@ I pointed the live app at its own address.
 
 After those fixes I ran it on itself again. Both sessions reached the goal this time, and nothing was rated as blocking. It found that my sample page "replayed" the report with a delay, so a visitor who didn't wait saw placeholder text and never reached the fix list. The sample now shows the whole report at once, and the landing page puts cost, sign-in and the main limit next to the buttons.
 
+### The first test of someone else's app
+
+The first person to click through the product pointed it at a route planner whose whole first screen is a map. The report came back with "Map never loads" as the most serious problem. The map was fine. The browser agent runs in the cloud on a machine with no graphics card, so WebGL could not start there, and the agent spent its steps pressing Reload.
+
+That was the tester's own blind spot written up as the app's bug, which is the one mistake a tool like this can't make. Three changes followed, in [src/lib/test-limit.ts](src/lib/test-limit.ts):
+
+- The agent is told about the limit before it starts, so it stops reloading and looks at what it can reach.
+- The fix-list writer is told not to list the limit, or anything that only happened because of it, as a problem.
+- A plain check that depends on neither AI spots the failure in what the sessions wrote. Findings that blame it never reach the fix list, the coding-agent door or the progress count. The report shows a notice instead, and lists what was set aside.
+
+The same click-through produced the top bar on every page, the three steps on the home screen, larger text, the replay you can step through, and History.
+
+### An independent review
+
 I then had a second AI agent review the code with one job: assume it's broken and prove where. It reported 15 problems, including a test that could stay on "Writing the fix list" forever, duplicate work when a run is open in two tabs, and the proxy issue above. Fourteen are fixed and one is partly fixed (the last item under Limits). Each one that can be checked without a live run has a unit test in [src/server/tester.test.ts](src/server/tester.test.ts).
 
 ## Design
@@ -135,11 +155,13 @@ The look follows DeepSpace's design guide, and the direction is written as a com
 - **Signature:** the hesitation trace. One bar per step, as tall as the agent was sure, with the unsure steps in the accent colour. It appears in the landing page's hero, on every session card and in the icon.
 - **Colour:** warm paper off-white, ink text and one vermilion accent, used only for buttons and hesitations. Status colours are darkened so white text on them passes the WCAG 4.5:1 contrast floor.
 - **Type:** IBM Plex Sans for text and IBM Plex Mono for numbers and labels, so the report reads like a lab readout. The fonts ship with the app, so no outside font service is called.
-- **Motion:** the hero's lines ink in one after another, once. They start faintly visible, so a screenshot or a visitor who looks early still sees the whole report. It switches off for people who ask for reduced motion.
+- **Motion and interaction:** the hero is a session you can play. A cursor works through a drawing of the sample app, wavers at the control the agent was unsure of, and the problem it found lands underneath. It plays once and then waits. Point at a bar of the trace, on the hero or on any report, and that step lights up; "Replay steps" walks through a session. Every animation shows something that happened, nothing loops, the finished state is what gets prerendered, and people who ask for reduced motion get that finished state and can still step through by hand.
+- **Direction:** a top bar names the same two places on every page. The home screen shows three steps with the current one marked, and each app has a bar for how much of its fix list is done.
 - **Signed-out home:** a visitor sees the real screen in preview form with an example, in place of an empty sign-in gate. The app's own self-test flagged the gate twice.
 
 ## Limits
 
+- The test browser has no graphics card, so it can't draw WebGL: maps, 3D and some charts. The report says so when that happens and sets aside the findings it caused, but that part of the app goes untested. An app that is mostly a map gets little from a test.
 - The agent can't use Google or GitHub sign-in or emailed codes. Apps behind sign-in need a test login with an email and password.
 - A test login passes through DeepSpace's proxy and Apify on its way to your app. Use a throwaway test account, never a real one.
 - It needs a public link. It can't reach an app running only on your laptop.
@@ -167,8 +189,8 @@ npm test
 npx deepspace test run all --grep "Public sample"
 ```
 
-- Unit tests cover what the agent tools return, reading the browser agent's results, reading the fix list, the fix-prompt wording, the spend caps, the public-link check, the test login and the review findings.
-- Browser tests cover the landing page, the sign-in boundary, the signed-out home preview, and the sample report showing its fix list with no server calls.
+- Unit tests cover what the agent tools return, reading the browser agent's results, reading the fix list, the fix-prompt wording, the open-in-agent links, the spend caps, the public-link check, the test login, an app's history, spotting the test browser's own limits, and the review findings.
+- Browser tests cover the landing page, the sign-in boundary, the signed-out home preview, the sample report showing its fix list with no server calls, the top bar, a link carried from the landing page into the form, and stepping through a replay.
 - Tests that need two signed-in test accounts are skipped until those accounts exist.
 
 ## What I'd build next
@@ -177,3 +199,5 @@ npx deepspace test run all --grep "Public sample"
 - Human testers on the same board, with an "I'm stuck" button.
 - A scheduled retest after every deploy.
 - Comparing two runs to see what a release changed.
+- A test browser with graphics, so maps and 3D can be tested too.
+- An automatic mode: the agent fixes, deploys and retests by itself, inside limits you set. It needs write access to your repository and a spending cap, and both have to be right before it is safe.

@@ -108,30 +108,30 @@
 }
 
 /*
- * The landing page's one motion: report lines "ink in" one after another,
- * like a readout. Linear timing on purpose.
- * Each element sets its own --tick-delay. Nothing loops.
+ * Motion. Every animation here shows something that happened, plays once,
+ * and is switched off for people who ask for reduced motion.
  */
-/* Lines start faint, never invisible: a screenshot or a visitor who looks
-   early still sees the whole report (a lesson from the app's own self-test). */
-@keyframes tick-in {
-  from { opacity: 0.14; }
+/* The hero's cursor wavers over a control the agent was unsure about. It
+   runs only while that step is on screen (about a second and a half). */
+@keyframes cursor-waver {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-7px, 3px); }
+  50% { transform: translate(6px, -2px); }
+  75% { transform: translate(-3px, -4px); }
 }
-@keyframes bar-grow {
-  from { transform: scaleX(0); }
+.cursor-waver {
+  animation: cursor-waver 800ms ease-in-out 2;
 }
-.tick-in {
-  animation: tick-in 220ms linear both;
-  animation-delay: var(--tick-delay, 0ms);
+/* A gentle rise for things that appear because of something you did. */
+@keyframes rise-in {
+  from { opacity: 0.2; transform: translateY(6px); }
 }
-.bar-grow {
-  transform-origin: left;
-  animation: bar-grow 420ms linear both;
-  animation-delay: var(--tick-delay, 0ms);
+.rise-in {
+  animation: rise-in 260ms ease-out both;
 }
 /* People who ask for less motion get the finished report straight away. */
 @media (prefers-reduced-motion: reduce) {
-  .tick-in, .bar-grow { animation: none; }
+  .cursor-waver, .rise-in { animation: none; }
 }
 
 /* Theme override blocks live in `themes.css` — imported above. */
@@ -207,7 +207,8 @@
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-size: 14px;
+    /* 16px: the first person to click through the app said the text was too small. */
+    font-size: 16px;
     color: var(--color-foreground);
   }
 

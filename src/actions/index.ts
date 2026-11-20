@@ -18,6 +18,8 @@
  */
 import type { ActionHandler, ActionResult, ActionTools } from 'deepspace/worker'
 import type { Env } from '../../worker'
+import { RETEST_PASSED, RETEST_STILL_BROKEN } from '../lib/history'
+import { GRAPHICS_LIMIT, setAsideTestLimits } from '../lib/test-limit'
 import { isPublicHttpUrl } from '../lib/url'
 import {
   LIMITS,
@@ -224,7 +226,7 @@ async function finishRetest(tools: ActionTools, run: Row<Run>, missions: Row<Mis
   }
   await tools.update('runs', run.recordId, {
     status: 'done',
-    summary: fixed ? 'Retest passed: a newcomer no longer runs into this.' : 'Retest: the problem is still there.',
+    summary: fixed ? RETEST_PASSED : RETEST_STILL_BROKEN,
     finishedAt: Date.now(),
   })
   return status('done')
@@ -268,6 +270,11 @@ async function finishFullTest(
     }
   }
 
+  // If the test browser could not draw part of the app, findings that blame
+  // that are the tester's limit, not the app's bug. They never reach the fix list.
+  const checked = setAsideTestLimits(summary.issues, sessions)
+  summary = { summary: summary.summary, issues: checked.real }
+
   // Fixed record ids: if this step is ever repeated, it overwrites the same
   // issues instead of adding a second copy of each.
   for (const [n, issue] of summary.issues.entries()) {
@@ -298,7 +305,13 @@ async function finishFullTest(
         from: `First-run tester <${appName}@app.space>`,
         to: email,
         subject: `First-run test: ${summary.issues.length} thing(s) a newcomer ran into on ${site.data.name}`,
-        text: reportEmail(site.data, summary.summary, summary.issues, link),
+        text: reportEmail(
+          site.data,
+          summary.summary,
+          summary.issues,
+          link,
+          checked.limited ? `${GRAPHICS_LIMIT.title}. ${GRAPHICS_LIMIT.body}` : undefined,
+        ),
       })
       if (!sent.success) console.warn(`[checkRun] report email failed: ${sent.error}`)
     }

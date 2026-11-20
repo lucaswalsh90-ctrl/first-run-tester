@@ -13,6 +13,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { AuthOverlay, useAuthProfileReady, signOut } from 'deepspace'
 import { ChevronDown, LogOut, Menu, X } from 'lucide-react'
 import { SIGN_IN_COPY } from '../constants'
+import { tabClass } from './TopBar'
 import { Wordmark } from './Wordmark'
 import type { Role } from '../constants'
 import { nav } from '../nav'
@@ -58,10 +59,7 @@ export default function Navigation() {
         key={item.path}
         to={item.path}
         aria-current={active ? 'page' : undefined}
-        className={cn(
-          'px-3 py-1.5 text-sm',
-          active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
-        )}
+        className={tabClass(active)}
       >
         {item.label}
       </Link>
@@ -71,13 +69,13 @@ export default function Navigation() {
   return (
     <>
       <nav data-testid="app-navigation" className="border-b border-border bg-background">
-        <div className="mx-auto flex h-12 max-w-7xl items-center gap-4 px-4">
-          <Link to="/" className="flex items-center gap-2 text-sm font-semibold tracking-tight text-foreground">
+        <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
+          <Link to="/" className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
             <Wordmark />
             First-run tester
           </Link>
 
-          <div className="hidden items-center md:flex">{visibleNav.map(navLink)}</div>
+          <div className="hidden items-center gap-1 md:flex">{visibleNav.map(navLink)}</div>
 
           <div className="flex-1" />
 

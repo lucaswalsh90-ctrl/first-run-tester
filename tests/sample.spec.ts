@@ -88,3 +88,52 @@ test.describe('Signed-out home preview', () => {
     await expect(page.getByText('Continuing with Google or GitHub creates your free account.')).toBeVisible()
   })
 })
+
+/**
+ * Getting around, and the parts you can poke. Each of these came from the
+ * first click-through by a person: no way back from the sample except the
+ * logo, a link you had to type twice, and reports that only sat there.
+ */
+test.describe('Getting around and interacting', () => {
+  test('the top bar switches between the sample report and your apps', async ({ page }) => {
+    await page.goto('/sample')
+    await page.getByRole('link', { name: 'Your apps' }).click()
+    await expect(page).toHaveURL(/\/home$/)
+    await expect(page.getByRole('heading', { name: 'Your apps', level: 1 })).toBeVisible({ timeout: 15_000 })
+    await page.getByRole('link', { name: 'Sample report' }).first().click()
+    await expect(page).toHaveURL(/\/sample$/)
+    await expect(page.getByRole('heading', { name: 'A sample report' })).toBeVisible()
+  })
+
+  test('a link typed on the landing page is waiting in the form', async ({ page }) => {
+    await page.goto('/')
+    await page.getByLabel("Paste your app's link to start").fill('my-app.example.com')
+    await page.getByRole('button', { name: 'Test your app' }).click()
+    await expect(page).toHaveURL(/\/home$/)
+    await expect(page.getByLabel('Public link')).toHaveValue('https://my-app.example.com', { timeout: 15_000 })
+    await expect(page.getByText('your link will be waiting in the form')).toBeVisible()
+  })
+
+  test('the hero replay can be stepped through by hand', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' }) // no autoplay: start from the finished state
+    await page.goto('/')
+    const hero = page.getByRole('figure')
+    await expect(hero.getByText('Done checkbox has no visible label')).toBeVisible()
+    await hero.getByRole('button', { name: /Step 3: 53% sure, hesitated here/ }).click()
+    await expect(hero.getByText('Step 3 of 4 · 53% sure · hesitated here')).toBeVisible()
+    await hero.getByRole('button', { name: 'Replay' }).click()
+    await expect(hero.getByText('Done checkbox has no visible label')).toBeVisible({ timeout: 15_000 })
+  })
+
+  test('a session can be replayed step by step on a report', async ({ page }) => {
+    await page.goto('/sample')
+    const session = page.getByRole('article').filter({ hasText: 'Main goal' })
+    await session.getByRole('button', { name: 'Replay steps' }).click()
+    await expect(session.getByRole('button', { name: 'Stop' })).toBeVisible()
+    await expect(session.getByRole('button', { name: /Step 1:/ })).toHaveAttribute('aria-pressed', 'true')
+    // Pointing at a bar takes over from the replay and lights that step.
+    await session.getByRole('button', { name: /Step 3:/ }).hover()
+    await expect(session.getByRole('button', { name: /Step 3:/ })).toHaveAttribute('aria-pressed', 'true')
+    await expect(session.getByRole('button', { name: 'Replay steps' })).toBeVisible()
+  })
+})

@@ -10,7 +10,12 @@
  * reports and fix prompts; starting a test or a retest stays a person's click.
  */
 
+import { GRAPHICS_LIMIT, setAsideTestLimits } from '../lib/test-limit'
+
 type Row<T> = { recordId: string; data: T; createdAt?: string }
+
+/** The parts of a saved browser session needed to tell whether the test browser hit its own limit. */
+export interface Session { runId: string; steps?: unknown; report?: string; confusing?: string }
 
 export interface Site { name: string; url: string; goal: string }
 export interface Run {
@@ -99,6 +104,7 @@ export function fixList(
   issues: Row<Issue>[],
   ask: { url?: string; runId?: string; includeFixed?: boolean },
   reportUrl: (runId: string) => string,
+  sessions: Row<Session>[] = [],
 ) {
   let run: Row<Run> | undefined
   if (ask.runId) {
@@ -123,7 +129,13 @@ export function fixList(
   }
 
   const site = sites.find((s) => s.recordId === run!.data.siteId)
-  const all = issues.filter((i) => i.data.runId === run!.recordId).sort((a, b) => a.data.severity - b.data.severity)
+  const found = issues.filter((i) => i.data.runId === run!.recordId).sort((a, b) => a.data.severity - b.data.severity)
+  // Findings caused by the test browser's own limit are never handed to an agent as work to do.
+  const checked = setAsideTestLimits(
+    found.map((i) => ({ ...i, title: i.data.title, detail: i.data.detail })),
+    sessions.filter((m) => m.data.runId === run!.recordId).map((m) => m.data),
+  )
+  const all = checked.real
   const wanted = ask.includeFixed ? all : all.filter((i) => i.data.status !== 'fixed')
 
   return {
@@ -136,6 +148,13 @@ export function fixList(
     summary: run.data.summary ?? '',
     report: reportUrl(run.recordId),
     problems: countByStatus(all),
+    ...(checked.limited
+      ? {
+          testBrowserLimit:
+            `${GRAPHICS_LIMIT.title}. ${GRAPHICS_LIMIT.body} ` +
+            `${checked.setAside.length} finding(s) caused by that were left out. Do not change the app's maps or graphics because of this test.`,
+        }
+      : {}),
     issues: wanted.map((i, n) => ({
       number: n + 1,
       severity: SEVERITY_WORDS[i.data.severity] ?? 'slows newcomers',

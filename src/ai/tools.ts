@@ -24,7 +24,7 @@ import { z } from 'zod/v4'
 import { BUILT_IN_TOOLS, applyAiToolDefaults } from 'deepspace/worker'
 import type { AgentToolContext, ToolSchema, CollectionSchema } from 'deepspace/worker'
 import type { Env } from '../../worker'
-import { fixList, listReports, type Issue, type Run, type Site } from '../server/agent-reports'
+import { fixList, listReports, type Issue, type Run, type Session, type Site } from '../server/agent-reports'
 
 type ToolExecutor = (toolName: string, params: Record<string, unknown>) => Promise<unknown>
 
@@ -133,6 +133,7 @@ export function buildTools(executor: ToolExecutor, context?: AgentToolContext<En
       execute: async (params: Record<string, unknown>) => {
         const { sites, runs, issues } = await load()
         if (def.name === 'first_run_reports') return { apps: listReports(sites, runs, issues, reportUrl) }
+        const sessions = await readAll<Session>(executor, 'missions')
         return fixList(
           sites,
           runs,
@@ -143,6 +144,7 @@ export function buildTools(executor: ToolExecutor, context?: AgentToolContext<En
             includeFixed: params.includeFixed === true,
           },
           reportUrl,
+          sessions,
         )
       },
     })

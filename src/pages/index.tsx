@@ -10,8 +10,9 @@
  * References: an editor's proof marks; a seismograph trace; a lab notebook page.
  * Signature: the hesitation trace. One bar per step, as tall as the agent was
  *   sure, with the unsure steps in vermilion.
- * Hero: a real session ticks in line by line, its bars fill, the trace draws,
- *   and the problem it found lands underneath.
+ * Hero: a session you can play. A cursor works through the sample app, wavers
+ *   at the control it was unsure of, and the problem it found lands underneath.
+ *   Point at a bar of the trace to jump to that step.
  *
  * Style Tile
  * - Color: warm paper off-white dominant, ink text, one vermilion accent kept
@@ -21,17 +22,20 @@
  * - Theme: light. It is a report you read and mark up, like a proof on paper.
  * - Art direction: modern minimalism. Whitespace, one accent, character from
  *   type and from the trace.
- * - Motion: mechanical. Lines tick in with linear timing, once. Nothing loops.
+ * - Motion: it shows what happened. The replay plays once and then waits for
+ *   you; bars and steps light up when you point at them. Nothing loops.
  * - Voice: second person; plain verbs and no hype words; says what it can't do.
  *
  * This is a STATIC page (top level of src/pages/): no auth fetch, no records
  * WebSocket, prerendered to HTML at build. The live app is behind /home.
  */
 
-import { Link } from 'react-router-dom'
-import { HeroReport } from '../components/landing/HeroReport'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { HeroReplay } from '../components/landing/HeroReplay'
 import { Seo } from '../components/Seo'
-import { Wordmark } from '../components/Wordmark'
+import { TopBar } from '../components/TopBar'
+import { saveLink } from '../lib/prefill'
 import { seo } from '../seo'
 
 const HOW = [
@@ -41,55 +45,77 @@ const HOW = [
 ]
 
 const FACTS = [
-  ['The sample', 'Free. No account.'],
+  ['Why not your coding agent', 'It built the app, so it knows where things are. This one starts cold.'],
   ['Your own app', 'A free DeepSpace account. Sign in with Google or GitHub.'],
-  ['Cost', '60 to 90 credits a test, about 60 to 90 cents. 500 a month are free.'],
+  ['Cost', '60 to 90 credits a test (60 to 90 cents). 500 a month are free.'],
   ['Sign-in walls', "Give it a throwaway test login. It can't use Google sign-in."],
+  ['Maps and 3D', "The test browser can't draw them, and the report says so."],
 ]
 
 const BUTTON =
-  'inline-flex items-center rounded-md px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90'
+  'inline-flex items-center rounded-md px-5 py-3 text-base font-medium transition-opacity hover:opacity-90'
 
 export default function Landing() {
+  const navigate = useNavigate()
+  const [link, setLink] = useState('')
+
+  /** The link goes with you to the Add app form, so you never type it twice. */
+  function start(e: React.FormEvent) {
+    e.preventDefault()
+    if (link.trim()) saveLink(link)
+    navigate('/home')
+  }
+
   return (
     <>
       <Seo {...seo} path="/" />
       <div data-testid="static-landing" className="min-h-screen bg-background">
-        <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <Link to="/" className="flex items-center gap-2 text-sm font-semibold tracking-tight text-foreground">
-            <Wordmark />
-            First-run tester
-          </Link>
-          <Link to="/home" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-            Open the app
-          </Link>
-        </header>
+        <TopBar />
 
         <main className="mx-auto max-w-6xl px-6">
-          <section className="grid items-start gap-12 pb-20 pt-10 lg:grid-cols-[1fr_minmax(0,30rem)] lg:pt-16">
+          <section className="grid items-start gap-12 pb-20 pt-10 lg:grid-cols-[1fr_minmax(0,32rem)] lg:pt-14">
             <div className="lg:pt-6">
-              <p className="font-mono text-xs uppercase tracking-wider text-primary">Fresh eyes for your app</p>
+              <p className="font-mono text-sm uppercase tracking-wider text-primary">Fresh eyes for your app</p>
               <h1 className="mt-4 text-5xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-6xl">
                 Watch a stranger use your app.
               </h1>
-              <p className="mt-6 max-w-md text-lg text-muted-foreground">
+              <p className="mt-6 max-w-md text-xl text-muted-foreground">
                 An AI that has never seen it clicks through in a real browser and shows you where it got stuck.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link to="/home" className={`${BUTTON} bg-primary text-primary-foreground`}>
-                  Test your app
-                </Link>
-                <Link to="/sample" className={`${BUTTON} border border-border bg-card text-foreground`}>
-                  See a sample report (no sign-in)
-                </Link>
-              </div>
+
+              <form onSubmit={start} className="mt-8 max-w-md">
+                <label htmlFor="hero-link" className="text-base font-medium text-foreground">
+                  Paste your app's link to start
+                </label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <input
+                    id="hero-link"
+                    type="text"
+                    inputMode="url"
+                    autoComplete="url"
+                    value={link}
+                    onChange={(e) => setLink(e.target.value)}
+                    placeholder="my-app.app.space"
+                    className="min-w-0 flex-1 rounded-md border border-border bg-card px-4 py-3 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+                  />
+                  <button type="submit" className={`${BUTTON} bg-primary text-primary-foreground`}>
+                    Test your app
+                  </button>
+                </div>
+              </form>
+              <Link
+                to="/sample"
+                className="mt-4 inline-block text-base font-medium text-foreground underline underline-offset-4"
+              >
+                See a sample report (no sign-in)
+              </Link>
             </div>
-            <HeroReport />
+            <HeroReplay />
           </section>
 
           <section className="grid gap-12 border-t border-border py-16 lg:grid-cols-2" aria-labelledby="how">
             <div>
-              <h2 id="how" className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+              <h2 id="how" className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
                 How it works
               </h2>
               <ol className="mt-6">
@@ -98,19 +124,19 @@ export default function Landing() {
                     <span className="font-mono text-3xl font-medium leading-none text-muted-foreground">{i + 1}</span>
                     <div>
                       <p className="text-xl font-semibold tracking-tight text-foreground">{title}</p>
-                      <p className="mt-1 text-muted-foreground">{body}</p>
+                      <p className="mt-1 text-lg text-muted-foreground">{body}</p>
                     </div>
                   </li>
                 ))}
               </ol>
             </div>
             <div>
-              <h2 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Good to know</h2>
+              <h2 className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Good to know</h2>
               <dl className="mt-6 rounded-lg border border-border bg-card">
                 {FACTS.map(([term, detail]) => (
-                  <div key={term} className="grid grid-cols-[8rem_1fr] gap-4 border-b border-border px-5 py-4 last:border-b-0">
-                    <dt className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{term}</dt>
-                    <dd className="text-sm text-foreground">{detail}</dd>
+                  <div key={term} className="grid grid-cols-[9rem_1fr] gap-4 border-b border-border px-5 py-4 last:border-b-0">
+                    <dt className="font-mono text-sm uppercase tracking-wider text-muted-foreground">{term}</dt>
+                    <dd className="text-foreground">{detail}</dd>
                   </div>
                 ))}
               </dl>
@@ -126,7 +152,7 @@ export default function Landing() {
         </main>
 
         <footer className="border-t border-border">
-          <p className="mx-auto max-w-6xl px-6 py-6 font-mono text-xs text-muted-foreground">
+          <p className="mx-auto max-w-6xl px-6 py-6 font-mono text-sm text-muted-foreground">
             Built on DeepSpace. Browser agent by Apify. Fix list by Claude.
           </p>
         </footer>

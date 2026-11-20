@@ -17,6 +17,8 @@ export interface NavItem {
 
 export const nav: NavItem[] = [
   { path: '/home', label: 'Your apps' },
+  // A public page, listed here so there is always a way to and from it.
+  { path: '/sample', label: 'Sample report' },
   // The /settings page still exists (it is the starter's), but it is left out of the nav.
   // The /api-status debug page still exists — add
   // `{ path: '/api-status', label: 'API Status', devOnly: true }` to surface it.
