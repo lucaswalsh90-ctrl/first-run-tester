@@ -69,6 +69,9 @@ interface Issue {
 
 const fail = (error: string): ActionResult<never> => ({ success: false, error })
 
+/** How long a new run may have no browser sessions recorded before it counts as failed. */
+const STARTUP_GRACE_SEC = 90
+
 /** Load a record and confirm the caller owns it. */
 async function getOwned<T>(tools: ActionTools, collection: string, id: unknown, userId: string): Promise<Row<T> | null> {
   if (typeof id !== 'string' || !id) return null
@@ -202,6 +205,16 @@ export const actions: Record<string, ActionHandler<Env>> = {
         m.data = { ...m.data, ...result }
       }
     }
+    // A run is created a moment before its browser sessions are recorded, and an
+    // open page can ask about it in that gap. No sessions yet means "still
+    // starting", not "all finished" (give up only if none ever show up).
+    if (missions.length === 0) {
+      if (elapsedSec < STARTUP_GRACE_SEC) return { success: true, data: { status: 'running' } }
+      const error = 'The browser sessions never started. Please run the test again.'
+      await tools.update('runs', run.recordId, { status: 'failed', error, finishedAt: Date.now() })
+      if (run.data.issueId) await tools.update('issues', run.data.issueId, { status: 'open' })
+      return { success: true, data: { status: 'failed' } }
+    }
     if (missions.some((m) => m.data.status === 'running')) {
       return { success: true, data: { status: 'running' } }
     }
@@ -291,7 +304,13 @@ export const actions: Record<string, ActionHandler<Env>> = {
   retestIssue: async ({ params, tools, userId }) => {
     const issue = await getOwned<Issue>(tools, 'issues', params.issueId, userId)
     if (!issue) return fail('Issue not found.')
-    if (issue.data.status === 'retesting') return fail('A retest is already running for this issue.')
+    // Refuse only while a retest of this issue is really in flight. Checking the
+    // runs themselves (not the issue's label) means a label left on "retesting"
+    // by an interrupted retest can't lock the button forever.
+    const earlier = await queryAll<Run>(tools, 'runs', { issueId: issue.recordId })
+    if (earlier.some((r) => r.data.status === 'running' || r.data.status === 'summarizing')) {
+      return fail('A retest is already running for this issue.')
+    }
     const site = await getOwned<Site>(tools, 'sites', issue.data.siteId, userId)
     if (!site) return fail('Site not found.')
     if (site.data.url === SAMPLE_SITE.url) {

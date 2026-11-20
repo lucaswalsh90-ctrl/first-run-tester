@@ -109,7 +109,7 @@ export default function RunPage() {
               <IssueCard
                 key={issue.recordId}
                 n={n + 1}
-                issue={issue.data}
+                issue={withLiveRetestStatus(issue.data, issue.recordId, retests)}
                 onRetest={isSample ? undefined : () => startRetest(issue.recordId)}
                 retestHint={isSample ? 'Add your own app to use Retest.' : undefined}
               />
@@ -137,7 +137,13 @@ function usePolling(runIds: string[]) {
     }
     tick()
     const timer = setInterval(tick, POLL_MS)
-    return () => clearInterval(timer)
+    // Browsers slow timers in background tabs, so also check the moment the tab is looked at again.
+    const onVisible = () => document.visibilityState === 'visible' && tick()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [key])
 }
 
@@ -145,4 +151,17 @@ function usePolling(runIds: string[]) {
 async function startRetest(issueId: string): Promise<string | null> {
   const r = await callAction('retestIssue', { issueId })
   return r.success ? null : r.error
+}
+
+/**
+ * An issue only shows "Retesting" while one of its retest runs is really in
+ * flight. If a retest was interrupted and left the label behind, show the
+ * issue as open so the button works again.
+ */
+function withLiveRetestStatus(issue: Issue, issueId: string, retests: Array<{ data: Run }>): Issue {
+  if (issue.status !== 'retesting') return issue
+  const inFlight = retests.some(
+    (r) => r.data.issueId === issueId && (r.data.status === 'running' || r.data.status === 'summarizing'),
+  )
+  return inFlight ? issue : { ...issue, status: 'open' }
 }
