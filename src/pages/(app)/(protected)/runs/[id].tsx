@@ -84,7 +84,9 @@ export default function RunPage() {
           Browser sessions
         </h2>
         <div className="grid gap-4 md:grid-cols-2">
-          {missions.map((m) => <MissionCard key={m.recordId} mission={m.data} startedAt={run.data.startedAt} />)}
+          {missions.map((m) => (
+            <MissionCard key={m.recordId} mission={m.data} startedAt={run.data.startedAt} sample={!!run.data.sample} />
+          ))}
         </div>
       </section>
 
@@ -142,7 +144,7 @@ function Elapsed({ from, to }: { from: number; to?: number }) {
   return <span className="font-mono text-sm tabular-nums text-muted-foreground">{Math.floor(sec / 60)}:{String(sec % 60).padStart(2, '0')}</span>
 }
 
-function MissionCard({ mission, startedAt }: { mission: Mission; startedAt: number }) {
+function MissionCard({ mission, startedAt, sample }: { mission: Mission; startedAt: number; sample: boolean }) {
   const steps = mission.steps ?? []
   return (
     <article className="rounded-lg border border-border bg-card p-4">
@@ -169,7 +171,9 @@ function MissionCard({ mission, startedAt }: { mission: Mission; startedAt: numb
             <div className="h-full w-1/3 animate-pulse rounded bg-primary/60" />
           </div>
           <p className="text-xs text-muted-foreground">
-            A real browser is open on your app. Steps appear here when this session finishes (usually under a minute).{' '}
+            {sample
+              ? 'Replaying a saved browser session. Its steps appear here in a few seconds.'
+              : 'A real browser is open on your app. Steps appear here when this session finishes (usually under a minute).'}{' '}
             <Elapsed from={startedAt} />
           </p>
         </div>
@@ -208,7 +212,9 @@ function MissionCard({ mission, startedAt }: { mission: Mission; startedAt: numb
 
 /** One step, with a bar for how sure the agent was. Low confidence = where a newcomer hesitates. */
 function StepRow({ step }: { step: Step }) {
-  const c = step.confidence
+  // The agent's last "step" is it deciding to stop; show that plainly, without a confidence bar.
+  const finished = step.action === 'done'
+  const c = finished ? null : step.confidence
   const pct = c == null ? null : Math.round(c * 100)
   const hesitant = c != null && c < 0.6
   return (
@@ -216,7 +222,9 @@ function StepRow({ step }: { step: Step }) {
       <div className="flex items-start gap-2">
         <span className="mt-0.5 w-5 shrink-0 text-right font-mono text-xs text-muted-foreground">{step.step}</span>
         <div className="min-w-0 flex-1">
-          <p className="text-foreground">{step.description}</p>
+          <p className={finished ? 'text-muted-foreground' : 'text-foreground'}>
+            {finished ? 'Stopped and wrote its report.' : step.description}
+          </p>
           {pct != null && (
             <div className="mt-1 flex items-center gap-2">
               <div className="h-1.5 w-24 overflow-hidden rounded bg-muted">
