@@ -41,7 +41,7 @@ export default function HomePage() {
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button variant="outline" disabled={busy !== null} onClick={() => start('startSample', {}, 'sample')}>
-            {busy === 'sample' ? 'Starting…' : 'Watch a sample test (free)'}
+            {busy === 'sample' ? 'Starting…' : 'Watch a live sample run (free)'}
           </Button>
         </div>
       </header>

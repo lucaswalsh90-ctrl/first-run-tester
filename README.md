@@ -45,7 +45,7 @@ The four collections are in [src/schemas/tester-schemas.ts](src/schemas/tester-s
 |---|---|
 | [src/actions/index.ts](src/actions/index.ts) | The four server actions: `startTest`, `startSample`, `checkRun`, `retestIssue` |
 | [src/server/tester.ts](src/server/tester.ts) | The instructions given to the browser agent, reading its results, the fix-list request, the fix-prompt wording, spend caps |
-| [src/server/sample-run.ts](src/server/sample-run.ts) | A real test saved on 2026-11-20, replayed by the free sample |
+| [src/server/sample-run.ts](src/server/sample-run.ts) | A real test saved on 2026-11-20, shown by the sample report |
 | [src/components/RunView.tsx](src/components/RunView.tsx) | The report pieces: session card, step row with confidence bar, issue card |
 | [src/pages/(app)/(protected)/runs/[id].tsx](<src/pages/(app)/(protected)/runs/[id].tsx>) | The live run board |
 | [src/pages/sample.tsx](src/pages/sample.tsx) | The public sample page |
@@ -70,7 +70,7 @@ The four collections are in [src/schemas/tester-schemas.ts](src/schemas/tester-s
 | `anthropic/chat-completion` (Claude Haiku) | Groups what went wrong into a ranked fix list | Well under 1 credit |
 | `email/send` | Sends the finished report | About 1 credit |
 
-A full test cost roughly 85 to 90 DeepSpace credits in testing, and a retest about 16. The free sample costs nothing because it replays saved data in the browser.
+A full test cost roughly 85 to 90 DeepSpace credits in testing, and a retest about 16. The sample report costs nothing because it is saved data shown in the browser.
 
 ## Decisions and tradeoffs
 
@@ -97,6 +97,8 @@ I pointed the live app at its own address.
 - It found that "Watch a free sample" sent signed-out visitors to a sign-in wall. I added the public sample page, and Retest came back Fixed.
 - Using it exposed a timing bug of mine: the page could ask about a new retest a moment before its browser session was recorded, and the server closed the retest as finished. A run with no sessions now counts as still starting.
 - It showed that an uncollected session leaves credits on hold, so the spend caps were lowered to fit each session's step limit.
+
+After those fixes I ran it on itself again. Both sessions reached the goal this time, and nothing was rated as blocking. It found that my sample page "replayed" the report with a delay, so a visitor who didn't wait saw placeholder text and never reached the fix list. The sample now shows the whole report at once, and the landing page puts cost, sign-in and the main limit next to the buttons.
 
 I then had a second AI agent review the code with one job: assume it's broken and prove where. It reported 15 problems, including a test that could stay on "Writing the fix list" forever, duplicate work when a run is open in two tabs, and the proxy issue above. Fourteen are fixed and one is partly fixed (the last item under Limits). Each one that can be checked without a live run has a unit test in [src/server/tester.test.ts](src/server/tester.test.ts).
 
@@ -129,7 +131,7 @@ npx deepspace test run all --grep "Public sample"
 ```
 
 - Unit tests cover reading the browser agent's results, reading the fix list, the fix-prompt wording, the spend caps, the public-link check and the review findings.
-- Browser tests cover the landing page, the sign-in boundary, and the sample playing through to the fix list with no server calls.
+- Browser tests cover the landing page, the sign-in boundary, and the sample report showing its fix list with no server calls.
 - Tests that need two signed-in test accounts are skipped until those accounts exist.
 
 ## What I'd build next

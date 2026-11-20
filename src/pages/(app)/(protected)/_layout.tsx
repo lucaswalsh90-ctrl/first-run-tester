@@ -52,7 +52,7 @@ function SignedOutPanel() {
             to="/sample"
             className="text-sm text-foreground underline underline-offset-4 hover:opacity-80"
           >
-            Not ready? Watch the free sample, no sign-in needed
+            Not ready? See a sample report, no sign-in needed
           </Link>
           <Link
             to="/"

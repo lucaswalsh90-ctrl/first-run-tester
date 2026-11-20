@@ -48,9 +48,25 @@ export default function Landing() {
               to="/sample"
               className="inline-flex items-center rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
             >
-              Watch a free sample (no sign-in)
+              See a sample report (no sign-in)
             </Link>
           </div>
+
+          <ul className="mt-6 max-w-xl list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+            <li>The sample is free and needs no account.</li>
+            <li>
+              Testing your own app needs a free DeepSpace account. Sign in with Google or GitHub, and either
+              one creates the account if you're new.
+            </li>
+            <li>
+              A test uses 60 to 90 of your own DeepSpace credits, roughly 60 to 90 US cents. A free account
+              comes with 500 credits a month.
+            </li>
+            <li>
+              One limit: if your app sits behind Google sign-in or emailed codes, the agent can only test up
+              to that point.
+            </li>
+          </ul>
 
           <ol className="mt-16 grid gap-6 sm:grid-cols-3">
             {STEPS.map((s, i) => (
@@ -63,14 +79,7 @@ export default function Landing() {
           </ol>
 
           <p className="mt-16 text-sm text-muted-foreground">
-            Testing your own app needs a free DeepSpace account: sign in with Google or GitHub, and either one
-            creates the account if you're new. A test uses about 60 to 90 of your own DeepSpace credits, and a
-            free account comes with 500 a month. The sample costs nothing.
-          </p>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Built on DeepSpace. The browser agent runs through Apify and the fix list is written by Claude. One
-            limit to know: if the app you're testing sits behind Google sign-in or emailed codes, the agent can
-            only test up to that point.
+            Built on DeepSpace. The browser agent runs through Apify and the fix list is written by Claude.
           </p>
         </div>
       </div>
