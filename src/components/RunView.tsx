@@ -8,6 +8,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Badge, Button, useToast } from '@/components/ui'
+import { withFolderCheck } from '@/lib/handoff'
 import { cn } from '@/lib/utils'
 import { SEVERITY, type Issue, type Mission, type Run, type Step } from '@/lib/types'
 
@@ -340,20 +341,26 @@ export function IssueCard({
   issue,
   onRetest,
   retestHint,
+  example = false,
 }: {
   n: number
   issue: Pick<Issue, 'severity' | 'title' | 'detail' | 'fixPrompt' | 'status' | 'retestNote'>
   onRetest?: () => Promise<string | null>
   retestHint?: string
+  /** On the sample report: the prompt is for someone else's app, so say so everywhere it appears. */
+  example?: boolean
 }) {
   const { success, error } = useToast()
   const [starting, setStarting] = useState(false)
   const sev = SEVERITY[issue.severity] ?? SEVERITY[2]
+  // Reports saved before the folder check existed get it added here.
+  const prompt = withFolderCheck(issue.fixPrompt)
 
   async function copy() {
     try {
-      await navigator.clipboard.writeText(issue.fixPrompt)
-      success('Fix prompt copied', 'Paste it into Claude Code, Cursor or your coding agent.')
+      await navigator.clipboard.writeText(prompt)
+      if (example) success('Example copied', "It's for the demo app, so your coding agent has nothing to fix. Test your own app to get real ones.")
+      else success('Fix prompt copied', "Paste it into your coding agent, opened in your app's folder.")
     } catch {
       error('Could not copy', 'Open the prompt below, select the text and copy it by hand.')
     }
@@ -401,15 +408,15 @@ export function IssueCard({
 
           <details className="mt-3">
             <summary className="cursor-pointer font-medium text-foreground">
-              Fix prompt for your coding agent
+              {example ? 'Example fix prompt for a coding agent' : 'Fix prompt for your coding agent'}
             </summary>
             <pre className="mt-2 whitespace-pre-wrap rounded-md bg-muted p-3 font-mono text-sm text-foreground">
-              {issue.fixPrompt}
+              {prompt}
             </pre>
           </details>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={copy}>Copy fix prompt</Button>
+            <Button variant="outline" onClick={copy}>{example ? 'Copy example prompt' : 'Copy fix prompt'}</Button>
             <Button
               variant="outline"
               loading={starting}

@@ -8,7 +8,7 @@
  * go, or have the agent fetch the list itself.
  */
 import { Button, useToast } from '@/components/ui'
-import { agentCommand, agentLinks, allFixPrompts, unfixed } from '@/lib/handoff'
+import { agentCommand, agentLinks, allFixPrompts, asExample, unfixed } from '@/lib/handoff'
 import type { Issue } from '@/lib/types'
 
 export function AgentHandoff({
@@ -16,12 +16,15 @@ export function AgentHandoff({
   issues,
   appName,
   runId,
+  example = false,
 }: {
   site: { name: string; url: string }
   issues: Array<Pick<Issue, 'title' | 'fixPrompt' | 'status'>>
   /** Set both to also show the command an agent can run. Left out on the public sample. */
   appName?: string
   runId?: string
+  /** On the sample report: these prompts are for someone else's app. */
+  example?: boolean
 }) {
   const { success, error } = useToast()
   const todo = unfixed(issues).length
@@ -32,7 +35,8 @@ export function AgentHandoff({
   async function copy(text: string, what: string) {
     try {
       await navigator.clipboard.writeText(text)
-      success(`${what} copied`, 'Paste it into Claude Code, Cursor or your coding agent.')
+      if (example) success(`${what} copied`, "They're for the demo app, so your coding agent has nothing to fix. Test your own app to get real ones.")
+      else success(`${what} copied`, "Paste it into your coding agent, opened in your app's folder.")
     } catch {
       error('Could not copy', 'Select the text and copy it by hand.')
     }
@@ -42,13 +46,30 @@ export function AgentHandoff({
     <div className="mb-4 rounded-lg border border-border bg-card p-5 shadow-[0_1px_2px_0_rgba(28,25,23,0.04)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">Hand this to your coding agent</h3>
+          <h3 className="text-lg font-semibold text-foreground">
+            {example ? 'What you would hand to your coding agent' : 'Hand this to your coding agent'}
+          </h3>
           <p className="mt-0.5 text-muted-foreground">
-            {todo === 1 ? 'One problem' : `All ${todo} problems`} in a single prompt, ready to paste.
+            {example
+              ? `An example. These ${todo} prompts are about the demo app, which is not your code.`
+              : `${todo === 1 ? 'One problem' : `All ${todo} problems`} in a single prompt. Paste it into your coding agent, opened in your app's folder.`}
           </p>
         </div>
-        <Button size="lg" onClick={() => copy(allFixPrompts(site, issues), 'Fix prompts')}>
-          {todo === 1 ? 'Copy the fix prompt' : `Copy all ${todo} fix prompts`}
+        <Button
+          size="lg"
+          variant={example ? 'outline' : 'default'}
+          onClick={() =>
+            copy(
+              example ? asExample(allFixPrompts(site, issues), site.name) : allFixPrompts(site, issues),
+              example ? 'Example prompts' : 'Fix prompts',
+            )
+          }
+        >
+          {example
+            ? `Copy all ${todo} example prompts`
+            : todo === 1
+              ? 'Copy the fix prompt'
+              : `Copy all ${todo} fix prompts`}
         </Button>
       </div>
 

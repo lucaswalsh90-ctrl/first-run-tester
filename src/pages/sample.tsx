@@ -20,9 +20,14 @@ import { Badge } from '../components/ui'
 import type { Mission } from '../lib/types'
 import { seo } from '../seo'
 import { SAMPLE_MISSIONS, SAMPLE_SITE, SAMPLE_SUMMARY } from '../server/sample-run'
+import { asExample } from '../lib/handoff'
 import { fixPrompt, planFullTest } from '../server/tester'
 
 const PLANS = planFullTest(SAMPLE_SITE.url, SAMPLE_SITE.goal)
+
+/** Every prompt on this page is marked as an example, in what you read and in what you copy. */
+const examplePrompt = (issue: (typeof SAMPLE_SUMMARY.issues)[number]) =>
+  asExample(fixPrompt(SAMPLE_SITE, issue), SAMPLE_SITE.name)
 
 const MISSIONS: Mission[] = SAMPLE_MISSIONS.map((saved, i) => ({
   runId: 'sample',
@@ -55,9 +60,13 @@ export default function SamplePage() {
 
         <section className="mt-10">
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">1 · The fix list</h2>
-          <p className="mt-1 text-muted-foreground">What the newcomer ran into, most serious first.</p>
+          <p className="mt-1 text-muted-foreground">
+            What the newcomer ran into, most serious first. The fix prompts here are examples: they are about the
+            demo app, so there is nothing for your own coding agent to do with them.
+          </p>
           <p className="mb-4 mt-3 max-w-2xl text-lg text-foreground">{SAMPLE_SUMMARY.summary}</p>
           <AgentHandoff
+            example
             site={SAMPLE_SITE}
             issues={SAMPLE_SUMMARY.issues.map((issue) => ({
               title: issue.title,
@@ -70,7 +79,8 @@ export default function SamplePage() {
               <IssueCard
                 key={issue.title}
                 n={n + 1}
-                issue={{ ...issue, fixPrompt: fixPrompt(SAMPLE_SITE, issue), status: 'open' }}
+                example
+                issue={{ ...issue, fixPrompt: examplePrompt(issue), status: 'open' }}
                 retestHint="Retest works on your own app."
               />
             ))}

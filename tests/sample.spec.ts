@@ -23,14 +23,22 @@ test.describe('Public sample', () => {
     await expect(page.getByText("someone else's app")).toBeVisible()
 
     // The fix list is on the page straight away: ranked issues, each with a prompt for a coding agent.
-    const issues = page.locator('ol > li').filter({ hasText: 'Fix prompt for your coding agent' })
+    const issues = page.locator('ol > li').filter({ hasText: 'Example fix prompt for a coding agent' })
     await expect(issues).toHaveCount(5, { timeout: 2_000 })
-    await issues.first().getByText('Fix prompt for your coding agent').click()
+    await issues.first().getByText('Example fix prompt for a coding agent').click()
     await expect(issues.first().locator('pre')).toContainText('Make the change directly in this repository')
 
-    // One button hands the whole list to a coding agent in a single paste.
-    await expect(page.getByRole('heading', { name: 'Hand this to your coding agent' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Copy all 5 fix prompts' })).toBeVisible()
+    // These prompts are about someone else's app. The first person to try the
+    // product pasted one into their coding agent, which then hunted for code
+    // that was never there. So the page and the prompt both say "example".
+    await expect(issues.first().locator('pre')).toContainText('EXAMPLE ONLY')
+    await expect(issues.first().locator('pre')).toContainText('say that it is an example and stop')
+    await expect(issues.first().getByRole('button', { name: 'Copy example prompt' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Copy fix prompt', exact: true })).toHaveCount(0)
+
+    // One button shows what handing the whole list to a coding agent looks like.
+    await expect(page.getByRole('heading', { name: 'What you would hand to your coding agent' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Copy all 5 example prompts' })).toBeVisible()
 
     // Both sessions show their steps with no placeholder, and a hesitation is flagged.
     await expect(page.getByRole('heading', { name: 'First look' })).toBeVisible()

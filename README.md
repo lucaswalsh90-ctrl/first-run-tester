@@ -141,6 +141,13 @@ That was the tester's own blind spot written up as the app's bug, which is the o
 - The fix-list writer is told not to list the limit, or anything that only happened because of it, as a problem.
 - A plain check that depends on neither AI spots the failure in what the sessions wrote. Findings that blame it never reach the fix list, the coding-agent door or the progress count. The report shows a notice instead, and lists what was set aside.
 
+The same person copied a fix prompt from the sample report into a coding agent that was open in their home folder. The prompt was about the demo app, whose code they don't have, and its last line told the agent to say where it had looked, so it searched the whole computer before giving up. Two changes, in [src/lib/handoff.ts](src/lib/handoff.ts):
+
+- Every fix prompt now starts by having the agent check that it is in the app's folder. If it isn't, it stops and asks where the code is.
+- The sample report's prompts are marked as examples on the page, on the buttons and inside the copied text, so an agent that receives one says so and stops.
+
+Both were checked the way the problem was found: each prompt was pasted, unchanged, into a fresh agent sitting in the wrong folder.
+
 The same click-through produced the top bar on every page, the three steps on the home screen, larger text, the replay you can step through, and History.
 
 ### An independent review

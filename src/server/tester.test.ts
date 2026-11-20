@@ -145,6 +145,10 @@ describe('fixPrompt', () => {
   it('tells the coding agent to edit the repository and how to know it is done', () => {
     const prompt = fixPrompt(SAMPLE_SITE, SAMPLE_SUMMARY.issues[0])
     expect(prompt).toContain('Make the change directly in this repository')
+    // An agent that is not in the app's folder must ask, not go looking.
+    expect(prompt).toContain('stop and ask me where the code is')
+    expect(prompt).toContain('Do not search the rest of the computer')
+    expect(prompt.indexOf('First check that the folder')).toBeLessThan(prompt.indexOf('Make the change directly'))
     expect(prompt).toContain(SAMPLE_SUMMARY.issues[0].title)
     expect(prompt).toContain('Done when:')
   })
