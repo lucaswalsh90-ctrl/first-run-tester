@@ -19,10 +19,14 @@ const POLL_MS = 4000
 
 export default function RunPage() {
   const { id = '' } = useParams()
-  const { records: runs, status } = useQuery<Run>('runs', { orderBy: 'createdAt', orderDir: 'desc' })
+  const { records: runs, status, error: runsError } = useQuery<Run>('runs', { orderBy: 'createdAt', orderDir: 'desc' })
   const { records: sites } = useQuery<Site>('sites')
   const { records: missions } = useQuery<Mission>('missions', { where: { runId: id }, orderBy: 'order', orderDir: 'asc' })
-  const { records: issues } = useQuery<Issue>('issues', { where: { runId: id }, orderBy: 'severity', orderDir: 'asc' })
+  const { records: issues, status: issuesStatus } = useQuery<Issue>('issues', {
+    where: { runId: id },
+    orderBy: 'severity',
+    orderDir: 'asc',
+  })
 
   const run = runs.find((r) => r.recordId === id)
   const site = sites.find((s) => s.recordId === run?.data.siteId)
@@ -38,6 +42,14 @@ export default function RunPage() {
   usePolling(active)
 
   if (status === 'loading') return <p className="p-10 text-sm text-muted-foreground">Loading…</p>
+  // A failed load is not the same as "this test doesn't exist".
+  if (status === 'error') {
+    return (
+      <p className="p-10 text-sm text-foreground">
+        This test couldn't be loaded{runsError ? ` (${runsError})` : ''}. Reload the page to try again.
+      </p>
+    )
+  }
   if (!run) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10">
@@ -101,6 +113,10 @@ export default function RunPage() {
               ? 'Writing the fix list…'
               : 'The fix list appears once both browser sessions finish.'}
           </p>
+        ) : issuesStatus === 'loading' ? (
+          <p className="text-sm text-muted-foreground">Loading the fix list…</p>
+        ) : issuesStatus === 'error' ? (
+          <p className="text-sm text-foreground">The fix list couldn't be loaded. Reload the page to try again.</p>
         ) : issues.length === 0 && run.data.status === 'done' ? (
           <p className="text-sm text-muted-foreground">No problems found. A newcomer got through without getting stuck.</p>
         ) : (

@@ -46,6 +46,9 @@ test.describe('Public sample', () => {
   test('a private report is not shown to a signed-out visitor', async ({ page }) => {
     await page.goto('/runs/anything')
     await expect(page.getByRole('heading', { name: 'Sign in to test your own app' })).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText('Fix list')).toHaveCount(0)
+    // The report's own sections must be absent (the sign-in panel mentions a
+    // "fix list" in a sentence, so match the headings, not the words).
+    await expect(page.getByRole('heading', { name: 'Fix list', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Browser sessions' })).toHaveCount(0)
   })
 })

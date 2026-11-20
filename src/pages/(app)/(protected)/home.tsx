@@ -11,13 +11,14 @@ import { useMutations, useQuery } from 'deepspace'
 import { Badge, Button, ConfirmModal, Input, Label, Textarea, useToast } from '@/components/ui'
 import { callAction } from '@/lib/actions'
 import type { Run, Site } from '@/lib/types'
+import { isPublicHttpUrl } from '@/lib/url'
 
 export default function HomePage() {
   const navigate = useNavigate()
   const { error } = useToast()
-  const { records: sites, status } = useQuery<Site>('sites', { orderBy: 'createdAt', orderDir: 'desc' })
+  const { records: sites, status, error: sitesError } = useQuery<Site>('sites', { orderBy: 'createdAt', orderDir: 'desc' })
   const { records: runs } = useQuery<Run>('runs', { orderBy: 'createdAt', orderDir: 'desc' })
-  const { remove } = useMutations<Site>('sites')
+  const { ready, removeConfirmed } = useMutations<Site>('sites')
   const [busy, setBusy] = useState<string | null>(null)
   const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null)
 
@@ -51,12 +52,20 @@ export default function HomePage() {
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">Your apps</h2>
         {status === 'loading' ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : status === 'error' ? (
+          <p className="text-sm text-foreground">
+            Your apps couldn't be loaded{sitesError ? ` (${sitesError})` : ''}. Reload the page to try again.
+          </p>
         ) : sites.length === 0 ? (
           <p className="text-sm text-muted-foreground">No apps yet. Add one above, or watch the sample first.</p>
         ) : (
           <ul className="space-y-3">
             {sites.map((site) => {
               const siteRuns = runs.filter((r) => r.data.siteId === site.recordId && r.data.kind === 'full')
+              // Removing an app mid-test would strand its browser sessions, so wait for it to finish.
+              const testing = runs.some(
+                (r) => r.data.siteId === site.recordId && (r.data.status === 'running' || r.data.status === 'summarizing'),
+              )
               return (
                 <li key={site.recordId} className="rounded-lg border border-border bg-card p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -76,6 +85,8 @@ export default function HomePage() {
                       <Button
                         size="sm"
                         variant="ghost"
+                        disabled={!ready || testing}
+                        title={testing ? 'Wait for the running test to finish' : undefined}
                         onClick={() => setRemoving({ id: site.recordId, name: site.data.name })}
                       >
                         Remove
@@ -113,7 +124,9 @@ export default function HomePage() {
         open={removing !== null}
         onClose={() => setRemoving(null)}
         onConfirm={() => {
-          if (removing) remove(removing.id)
+          if (removing) {
+            removeConfirmed(removing.id).catch((e) => error('Could not remove the app', String(e?.message ?? e)))
+          }
           setRemoving(null)
         }}
         title={`Remove ${removing?.name ?? 'this app'}?`}
@@ -137,13 +150,14 @@ export function RunStatus({ status }: { status: Run['status'] }) {
 }
 
 function AddSite() {
-  const { create } = useMutations<Site>('sites')
+  const { ready, createConfirmed } = useMutations<Site>('sites')
   const { success, error } = useToast()
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
   const [goal, setGoal] = useState('')
+  const [saving, setSaving] = useState(false)
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
     let link: URL
     try {
@@ -152,15 +166,30 @@ function AddSite() {
       error('That link is not valid', 'Use the full address, starting with https://')
       return
     }
+    if (!isPublicHttpUrl(link.toString())) {
+      error(
+        'That link is not reachable from the internet',
+        'The tester runs in the cloud, so it needs a public link (not localhost or a private address).',
+      )
+      return
+    }
     if (!goal.trim()) {
       error('Add a goal', 'Say what a brand-new user should be able to do.')
       return
     }
-    create({ name: name.trim() || link.hostname, url: link.toString(), goal: goal.trim() })
-    setName('')
-    setUrl('')
-    setGoal('')
-    success('App added', 'Press "Run a first-run test" when you are ready.')
+    // Wait for the server to confirm the save before saying it worked.
+    setSaving(true)
+    try {
+      await createConfirmed({ name: name.trim() || link.hostname, url: link.toString(), goal: goal.trim() })
+      setName('')
+      setUrl('')
+      setGoal('')
+      success('App added', 'Press "Run a first-run test" when you are ready.')
+    } catch (e) {
+      error('The app was not saved', e instanceof Error ? e.message : 'Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -180,6 +209,7 @@ function AddSite() {
         <Label htmlFor="site-goal">What should a brand-new user be able to do?</Label>
         <Textarea
           id="site-goal"
+          maxLength={300}
           value={goal}
           onChange={(e) => setGoal(e.target.value)}
           rows={2}
@@ -190,7 +220,9 @@ function AddSite() {
         Each real test runs two AI browser sessions and costs about 60 to 90 DeepSpace credits from your own account.
         The agent can't get past Google sign-in or verification codes.
       </p>
-      <Button type="submit">Add app</Button>
+      <Button type="submit" disabled={!ready || saving}>
+        {saving ? 'Saving…' : 'Add app'}
+      </Button>
     </form>
   )
 }

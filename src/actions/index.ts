@@ -5,17 +5,20 @@
  * loads the record it was given and checks it belongs to the caller before
  * touching anything (see the trust model in src/server/action-routes.ts).
  *
- *   startTest     start a full test of one of your sites (two browser missions)
+ *   startTest     start a full test of one of your sites (two browser sessions)
  *   startSample   replay a saved real test, free, so anyone can see the app work
  *   checkRun      called by the open run page every few seconds: collects
- *                 finished missions, then writes the fix list and emails it
+ *                 finished sessions, then writes the fix list and emails it
  *   retestIssue   re-check one issue after you fixed it
  *
  * Who pays: apify, anthropic and email are billed to the caller
- * (src/integrations.ts), and each person gets a few real runs a day.
+ * (src/integrations.ts), and each person gets a limited number of real runs a day.
+ *
+ * A run moves through: running -> summarizing -> done, or failed.
  */
 import type { ActionHandler, ActionResult, ActionTools } from 'deepspace/worker'
 import type { Env } from '../../worker'
+import { isPublicHttpUrl } from '../lib/url'
 import {
   LIMITS,
   browserAgentRequest,
@@ -27,6 +30,7 @@ import {
   readSummary,
   reportEmail,
   summaryRequest,
+  type DraftIssue,
   type MissionPlan,
   type MissionResult,
 } from '../server/tester'
@@ -42,6 +46,7 @@ interface Run {
   status: 'running' | 'summarizing' | 'done' | 'failed'
   summary?: string
   error?: string
+  summaryTries?: number
   sample?: boolean
   startedAt: number
   finishedAt?: number
@@ -68,9 +73,17 @@ interface Issue {
 }
 
 const fail = (error: string): ActionResult<never> => ({ success: false, error })
+const status = (value: Run['status']) => ({ success: true as const, data: { status: value } })
 
 /** How long a new run may have no browser sessions recorded before it counts as failed. */
 const STARTUP_GRACE_SEC = 90
+/** Extra time, past the agent's own time limit, before a silent session is given up on. */
+const SESSION_OVERDUE_SEC = LIMITS.missionTimeoutSec + 120
+/** A claim older than this was abandoned (the request died), so another request may take over. */
+const CLAIM_STALE_SEC = 90
+
+const NEEDS_PUBLIC_LINK =
+  'The tester opens your app from the internet, so it needs a public link (not localhost or a private address).'
 
 /** Load a record and confirm the caller owns it. */
 async function getOwned<T>(tools: ActionTools, collection: string, id: unknown, userId: string): Promise<Row<T> | null> {
@@ -86,23 +99,22 @@ async function queryAll<T>(tools: ActionTools, collection: string, where: Record
   return r.success ? ((r.data as { records: Row<T>[] }).records ?? []) : []
 }
 
-/** Real (paid) runs started by this user in the last 24 hours. */
+/**
+ * Real (paid) runs started by this user in the last 24 hours. Sample runs are
+ * left out in the query itself (true/false is stored as 1/0), so watching the
+ * free sample many times can't push real runs out of the result.
+ */
 async function realRunsToday(tools: ActionTools, userId: string): Promise<number> {
-  const runs = await queryAll<Run>(tools, 'runs', { createdBy: userId })
+  const runs = await queryAll<Run>(tools, 'runs', { createdBy: userId, sample: 0 })
   const since = Date.now() - 24 * 60 * 60 * 1000
-  return runs.filter((r) => !r.data.sample && r.data.startedAt > since).length
+  return runs.filter((r) => r.data.startedAt > since).length
 }
 
-function isPublicHttpUrl(value: string): boolean {
-  try {
-    const u = new URL(value)
-    const host = u.hostname
-    const local = host === 'localhost' || host.endsWith('.local') || /^(127\.|10\.|192\.168\.|0\.)/.test(host)
-    return (u.protocol === 'https:' || u.protocol === 'http:') && !local
-  } catch {
-    return false
-  }
-}
+const overLimit = () =>
+  fail(
+    `You've reached ${LIMITS.realRunsPerUserPerDay} runs in 24 hours (each test and each retest counts as one). ` +
+      'Try again later, or watch the sample.',
+  )
 
 /** Starts one browser session at Apify and records it as a running mission. */
 async function launchMission(tools: ActionTools, runId: string, url: string, plan: MissionPlan, order: number) {
@@ -110,23 +122,182 @@ async function launchMission(tools: ActionTools, runId: string, url: string, pla
   const base = { runId, order, title: plan.title, task: plan.task }
   if (!started.success || !started.data?.jobId) {
     const why = started.success ? 'The browser agent did not start.' : started.error
-    await tools.create('missions', { ...base, status: 'failed', report: why })
+    await tools.create('missions', { ...base, status: 'failed', succeeded: false, steps: [], report: why })
     return { ok: false as const, error: why }
   }
   await tools.create('missions', { ...base, status: 'running', externalId: started.data.jobId })
   return { ok: true as const }
 }
 
+/**
+ * Step 1 of checkRun: ask about each session that is still running and save
+ * any that have finished. Returns the missions with fresh data.
+ */
+async function collectSessions(tools: ActionTools, run: Row<Run>, missions: Row<Mission>[]) {
+  const elapsedSec = (Date.now() - run.data.startedAt) / 1000
+  for (const m of missions.filter((x) => x.data.status === 'running')) {
+    let result: MissionResult | null = null
+    if (run.data.sample) {
+      const saved = SAMPLE_MISSIONS[m.data.order]
+      if (saved && elapsedSec >= saved.revealAfterSec) result = saved
+    } else {
+      const r = m.data.externalId
+        ? await tools.integration<{ status?: string; items?: Array<Record<string, unknown>> }>('apify/get-run', {
+            runId: m.data.externalId,
+          })
+        : null
+      if (r?.success && isFinished(r.data?.status)) {
+        result = readBrowserAgentRun(r.data)
+      } else if (elapsedSec > SESSION_OVERDUE_SEC) {
+        // No answer long after the agent's own time limit: stop waiting so the run can finish.
+        result = {
+          status: 'failed',
+          succeeded: false,
+          steps: [],
+          report: 'This browser session never reported back, so it was given up on.',
+          confusing: '',
+          screenshotUrl: '',
+          durationSec: 0,
+        }
+      }
+    }
+    if (result) {
+      await tools.update('missions', m.recordId, { ...result })
+      m.data = { ...m.data, ...result }
+    }
+  }
+  return missions
+}
+
+/**
+ * Step 2 of checkRun: take the claim ticket for finishing this run. The
+ * `run_claims` collection allows one row per run, so if two tabs ask at the
+ * same moment the database refuses the second and only one writes the fix
+ * list and sends the email. A ticket left behind by a request that died is
+ * replaced once it is stale.
+ */
+async function claimRun(tools: ActionTools, runId: string): Promise<boolean> {
+  const first = await tools.create('run_claims', { runId, claimedAt: Date.now() })
+  if (first.success) return true
+  const existing = (await queryAll<{ runId: string; claimedAt: number }>(tools, 'run_claims', { runId }))[0]
+  if (!existing) throw new Error(`Could not claim run ${runId}: ${first.error}`)
+  if (Date.now() - existing.data.claimedAt < CLAIM_STALE_SEC * 1000) return false
+  await tools.remove('run_claims', existing.recordId)
+  return (await tools.create('run_claims', { runId, claimedAt: Date.now() })).success
+}
+
+async function releaseClaim(tools: ActionTools, runId: string) {
+  for (const claim of await queryAll(tools, 'run_claims', { runId })) await tools.remove('run_claims', claim.recordId)
+}
+
+/** Finishing a retest: record the agent's verdict on the one issue it checked. */
+async function finishRetest(tools: ActionTools, run: Row<Run>, missions: Row<Mission>[]) {
+  const result = missions[0]?.data
+  // A session that crashed, timed out or gave no verdict checked nothing.
+  // Say so and reopen the issue; never report that as "still broken".
+  if (!result || result.status !== 'done' || result.fixed == null) {
+    const error = "The retest couldn't finish, so nothing was checked. Please retest again."
+    if (run.data.issueId) await tools.update('issues', run.data.issueId, { status: 'open', retestNote: error })
+    await tools.update('runs', run.recordId, { status: 'failed', error, finishedAt: Date.now() })
+    return status('failed')
+  }
+  const fixed = !!result.fixed // stored as 1/0 once it has been saved
+  if (run.data.issueId) {
+    await tools.update('issues', run.data.issueId, {
+      status: fixed ? 'fixed' : 'still_broken',
+      retestNote: result.confusing || result.report || '',
+    })
+  }
+  await tools.update('runs', run.recordId, {
+    status: 'done',
+    summary: fixed ? 'Retest passed: a newcomer no longer runs into this.' : 'Retest: the problem is still there.',
+    finishedAt: Date.now(),
+  })
+  return status('done')
+}
+
+/** Finishing a full test: write the ranked fix list, mark the run done, email the report. */
+async function finishFullTest(
+  tools: ActionTools,
+  run: Row<Run>,
+  missions: Row<Mission>[],
+  site: Row<Site>,
+  userId: string,
+  appName: string,
+) {
+  const sessions = missions.map((m) => ({ ...m.data }))
+
+  let summary: { summary: string; issues: DraftIssue[] }
+  if (run.data.sample) {
+    summary = SAMPLE_SUMMARY
+  } else if (sessions.every((m) => m.status === 'failed')) {
+    const error = 'The browser agent could not finish either session. Check that the link opens without a login.'
+    await tools.update('runs', run.recordId, { status: 'failed', error, finishedAt: Date.now() })
+    return status('failed')
+  } else {
+    try {
+      const ai = await tools.integration('anthropic/chat-completion', summaryRequest(site.data, sessions))
+      if (!ai.success) throw new Error(ai.error)
+      summary = readSummary(ai.data)
+    } catch (e) {
+      // The sessions are already paid for, so try the fix list again on the
+      // next check instead of throwing the whole test away.
+      const tries = (run.data.summaryTries ?? 0) + 1
+      if (tries < LIMITS.summaryTries) {
+        await tools.update('runs', run.recordId, { status: 'running', summaryTries: tries })
+        await releaseClaim(tools, run.recordId)
+        return status('running')
+      }
+      const error = `The sessions finished, but writing the fix list failed: ${e instanceof Error ? e.message : String(e)}`
+      await tools.update('runs', run.recordId, { status: 'failed', error, summaryTries: tries, finishedAt: Date.now() })
+      return fail(error)
+    }
+  }
+
+  // Fixed record ids: if this step is ever repeated, it overwrites the same
+  // issues instead of adding a second copy of each.
+  for (const [n, issue] of summary.issues.entries()) {
+    await tools.create(
+      'issues',
+      {
+        runId: run.recordId,
+        siteId: site.recordId,
+        severity: issue.severity,
+        title: issue.title,
+        detail: issue.detail,
+        fixPrompt: fixPrompt(site.data, issue),
+        check: issue.check,
+        status: 'open',
+      } satisfies Issue,
+      `${run.recordId}-issue-${n + 1}`,
+    )
+  }
+  await tools.update('runs', run.recordId, { status: 'done', summary: summary.summary, finishedAt: Date.now() })
+
+  // Email the report (real runs only). A failed email never fails the run.
+  if (!run.data.sample) {
+    const me = await tools.get('users', userId)
+    const email = me.success ? (me.data as { record?: Row<{ email?: string }> }).record?.data.email : undefined
+    if (email) {
+      const link = `https://${appName}.app.space/runs/${run.recordId}`
+      const sent = await tools.integration('email/send', {
+        from: `First-run tester <${appName}@app.space>`,
+        to: email,
+        subject: `First-run test: ${summary.issues.length} thing(s) a newcomer ran into on ${site.data.name}`,
+        text: reportEmail(site.data, summary.summary, summary.issues, link),
+      })
+      if (!sent.success) console.warn(`[checkRun] report email failed: ${sent.error}`)
+    }
+  }
+  return status('done')
+}
+
 export const actions: Record<string, ActionHandler<Env>> = {
   startTest: async ({ params, tools, userId }) => {
     const site = await getOwned<Site>(tools, 'sites', params.siteId, userId)
     if (!site) return fail('Site not found.')
-    if (!isPublicHttpUrl(site.data.url)) {
-      return fail('The tester opens your app from the internet, so it needs a public link (not localhost).')
-    }
-    if ((await realRunsToday(tools, userId)) >= LIMITS.realRunsPerUserPerDay) {
-      return fail(`You've used today's ${LIMITS.realRunsPerUserPerDay} tests. Try again tomorrow, or watch the sample.`)
-    }
+    if (!isPublicHttpUrl(site.data.url)) return fail(NEEDS_PUBLIC_LINK)
+    if ((await realRunsToday(tools, userId)) >= LIMITS.realRunsPerUserPerDay) return overLimit()
 
     const run = await tools.create('runs', {
       siteId: site.recordId,
@@ -138,7 +309,7 @@ export const actions: Record<string, ActionHandler<Env>> = {
     if (!run.success) return run
     const runId = run.data.recordId
 
-    // Both missions start now and run side by side, each in a fresh browser.
+    // Both sessions start now and run side by side, each in a fresh browser.
     const plans = planFullTest(site.data.url, site.data.goal)
     const launched = await Promise.all(plans.map((plan, i) => launchMission(tools, runId, site.data.url, plan, i)))
     if (launched.every((l) => !l.ok)) {
@@ -183,127 +354,55 @@ export const actions: Record<string, ActionHandler<Env>> = {
   checkRun: async ({ params, tools, userId, env }) => {
     const run = await getOwned<Run>(tools, 'runs', params.runId, userId)
     if (!run) return fail('Run not found.')
-    if (run.data.status !== 'running') return { success: true, data: { status: run.data.status } }
+    if (run.data.status === 'done' || run.data.status === 'failed') return status(run.data.status)
 
-    // 1. Collect any missions that have finished since the last check.
-    const missions = await queryAll<Mission>(tools, 'missions', { runId: run.recordId })
-    const elapsedSec = (Date.now() - run.data.startedAt) / 1000
-    for (const m of missions.filter((x) => x.data.status === 'running')) {
-      let result: MissionResult | null = null
-      if (run.data.sample) {
-        const saved = SAMPLE_MISSIONS[m.data.order]
-        if (saved && elapsedSec >= saved.revealAfterSec) result = saved
-      } else if (m.data.externalId) {
-        const r = await tools.integration<{ status?: string; items?: Array<Record<string, unknown>> }>(
-          'apify/get-run',
-          { runId: m.data.externalId },
-        )
-        if (r.success && isFinished(r.data?.status)) result = readBrowserAgentRun(r.data)
-      }
-      if (result) {
-        await tools.update('missions', m.recordId, { ...result })
-        m.data = { ...m.data, ...result }
-      }
-    }
+    let missions = await queryAll<Mission>(tools, 'missions', { runId: run.recordId })
+
     // A run is created a moment before its browser sessions are recorded, and an
     // open page can ask about it in that gap. No sessions yet means "still
     // starting", not "all finished" (give up only if none ever show up).
     if (missions.length === 0) {
-      if (elapsedSec < STARTUP_GRACE_SEC) return { success: true, data: { status: 'running' } }
+      const elapsedSec = (Date.now() - run.data.startedAt) / 1000
+      if (elapsedSec < STARTUP_GRACE_SEC) return status('running')
       const error = 'The browser sessions never started. Please run the test again.'
       await tools.update('runs', run.recordId, { status: 'failed', error, finishedAt: Date.now() })
       if (run.data.issueId) await tools.update('issues', run.data.issueId, { status: 'open' })
-      return { success: true, data: { status: 'failed' } }
-    }
-    if (missions.some((m) => m.data.status === 'running')) {
-      return { success: true, data: { status: 'running' } }
+      return status('failed')
     }
 
-    // 2. Every mission is finished: claim the run so a second open tab doesn't repeat this.
+    // 1. Save any sessions that have finished since the last check.
+    missions = await collectSessions(tools, run, missions)
+    if (missions.some((m) => m.data.status === 'running')) return status('running')
+
+    // 2. Every session is in. Only one request gets to finish the run.
+    if (!(await claimRun(tools, run.recordId))) return status('summarizing')
     await tools.update('runs', run.recordId, { status: 'summarizing' })
+
+    // 3. Finish it.
+    missions.sort((a, b) => a.data.order - b.data.order)
+    if (run.data.kind === 'retest') return finishRetest(tools, run, missions)
+
     const site = await getOwned<Site>(tools, 'sites', run.data.siteId, userId)
     if (!site) {
-      await tools.update('runs', run.recordId, { status: 'failed', error: 'Site was deleted.', finishedAt: Date.now() })
-      return fail('Site was deleted.')
+      const error = 'The app was removed before the test finished.'
+      await tools.update('runs', run.recordId, { status: 'failed', error, finishedAt: Date.now() })
+      return status('failed')
     }
-    const finished = missions.map((m) => ({ title: m.data.title, ...(m.data as MissionResult) }))
-
-    // 2a. A retest: the agent already judged whether the issue is fixed.
-    if (run.data.kind === 'retest') {
-      const result = finished[0]
-      const fixed = result?.status === 'done' && result.fixed === true
-      if (run.data.issueId) {
-        await tools.update('issues', run.data.issueId, {
-          status: fixed ? 'fixed' : 'still_broken',
-          retestNote: result?.confusing || result?.report || '',
-        })
-      }
-      await tools.update('runs', run.recordId, {
-        status: 'done',
-        summary: fixed ? 'Retest passed: a newcomer no longer runs into this.' : 'Retest: the problem is still there.',
-        finishedAt: Date.now(),
-      })
-      return { success: true, data: { status: 'done' } }
-    }
-
-    // 2b. A full test: turn the missions into a ranked fix list.
-    let summary: { summary: string; issues: typeof SAMPLE_SUMMARY.issues }
-    if (run.data.sample) {
-      summary = SAMPLE_SUMMARY
-    } else if (finished.every((m) => m.status === 'failed')) {
-      await tools.update('runs', run.recordId, {
-        status: 'failed',
-        error: 'The browser agent could not finish either mission. Check that the link opens without a login.',
-        finishedAt: Date.now(),
-      })
-      return { success: true, data: { status: 'failed' } }
-    } else {
-      const ai = await tools.integration('anthropic/chat-completion', summaryRequest(site.data, finished))
-      try {
-        if (!ai.success) throw new Error(ai.error)
-        summary = readSummary(ai.data)
-      } catch (e) {
-        const error = `The missions finished, but writing the fix list failed: ${e instanceof Error ? e.message : String(e)}`
-        await tools.update('runs', run.recordId, { status: 'failed', error, finishedAt: Date.now() })
-        return fail(error)
-      }
-    }
-
-    for (const issue of summary.issues) {
-      await tools.create('issues', {
-        runId: run.recordId,
-        siteId: site.recordId,
-        severity: issue.severity,
-        title: issue.title,
-        detail: issue.detail,
-        fixPrompt: fixPrompt(site.data, issue),
-        check: issue.check,
-        status: 'open',
-      } satisfies Issue)
-    }
-    await tools.update('runs', run.recordId, { status: 'done', summary: summary.summary, finishedAt: Date.now() })
-
-    // 3. Email the report (real runs only). A failed email never fails the run.
-    if (!run.data.sample) {
-      const me = await tools.get('users', userId)
-      const email = me.success ? (me.data as { record?: Row<{ email?: string }> }).record?.data.email : undefined
-      if (email) {
-        const link = `https://${env.APP_NAME}.app.space/runs/${run.recordId}`
-        const sent = await tools.integration('email/send', {
-          from: `First-run tester <${env.APP_NAME}@app.space>`,
-          to: email,
-          subject: `First-run test: ${summary.issues.length} thing(s) a newcomer ran into on ${site.data.name}`,
-          text: reportEmail(site.data, summary.summary, summary.issues, link),
-        })
-        if (!sent.success) console.warn(`[checkRun] report email failed: ${sent.error}`)
-      }
-    }
-    return { success: true, data: { status: 'done' } }
+    return finishFullTest(tools, run, missions, site, userId, env.APP_NAME)
   },
 
   retestIssue: async ({ params, tools, userId }) => {
     const issue = await getOwned<Issue>(tools, 'issues', params.issueId, userId)
     if (!issue) return fail('Issue not found.')
+    // Issues from the free sample belong to someone else's demo app, so there is nothing to fix.
+    const foundIn = await getOwned<Run>(tools, 'runs', issue.data.runId, userId)
+    if (foundIn?.data.sample) {
+      return fail("This issue comes from the sample, which isn't your app to fix. Add your own app to try Retest.")
+    }
+    const site = await getOwned<Site>(tools, 'sites', issue.data.siteId, userId)
+    if (!site) return fail('Site not found.')
+    if (!isPublicHttpUrl(site.data.url)) return fail(NEEDS_PUBLIC_LINK)
+
     // Refuse only while a retest of this issue is really in flight. Checking the
     // runs themselves (not the issue's label) means a label left on "retesting"
     // by an interrupted retest can't lock the button forever.
@@ -311,14 +410,7 @@ export const actions: Record<string, ActionHandler<Env>> = {
     if (earlier.some((r) => r.data.status === 'running' || r.data.status === 'summarizing')) {
       return fail('A retest is already running for this issue.')
     }
-    const site = await getOwned<Site>(tools, 'sites', issue.data.siteId, userId)
-    if (!site) return fail('Site not found.')
-    if (site.data.url === SAMPLE_SITE.url) {
-      return fail("The sample app isn't yours to fix, so it can't be retested. Add your own app to try Retest.")
-    }
-    if ((await realRunsToday(tools, userId)) >= LIMITS.realRunsPerUserPerDay) {
-      return fail(`You've used today's ${LIMITS.realRunsPerUserPerDay} tests. Try again tomorrow.`)
-    }
+    if ((await realRunsToday(tools, userId)) >= LIMITS.realRunsPerUserPerDay) return overLimit()
 
     const run = await tools.create('runs', {
       siteId: site.recordId,

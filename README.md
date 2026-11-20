@@ -56,10 +56,11 @@ The four collections are in [src/schemas/tester-schemas.ts](src/schemas/tester-s
 |---|---|
 | Sign-in | Tests cost credits, so the app has to know who is running one |
 | Records with live sync | The run board updates when the server writes a record. There is no hand-written socket code |
-| Permissions | Everyone sees only their own apps and reports. Reports can only be written by the server, so nobody can fake a result from the browser console |
+| Permissions | Everyone sees only their own apps and reports, and that includes the app's owner. Reports can only be written or deleted by the server, so nobody can fake a result or erase a run from the browser console |
 | Server actions | Starting and collecting tests needs server-side rules (ownership checks, daily limit, spend caps) |
 | Integration proxy | Three outside services with no API keys in this repository |
-| Per-user billing | Whoever runs a test pays for it, so strangers can't spend the owner's credits |
+| Per-user billing | Whoever runs a test pays for it. The starter's proxy would bill any unlisted integration to the owner, so this app refuses integrations it doesn't list |
+| Unique records | A one-per-run "claim" record means two open tabs can't both write the fix list or send the email |
 
 ## The three integrations
 
@@ -83,7 +84,11 @@ A full test cost roughly 85 to 90 DeepSpace credits in testing, and a retest abo
 
 **It never touches your code.** The app hands a prompt to your coding agent. Connecting to GitHub and editing a repository directly would need write access to someone's code, which is a trust question this version doesn't take on.
 
-**Spend limits are built in.** Each session has a step limit and a dollar cap sized to that limit. Each person gets 5 real tests a day.
+**Spend limits are built in.** Each session has a step limit and a dollar cap sized to that limit. Each person gets 12 real runs in 24 hours, where a test and a retest each count as one.
+
+**Failures don't waste a paid test.** If writing the fix list fails, it's tried again up to three times before the run is marked failed. A retest that crashes or times out reopens the issue and says nothing was checked. It never reports that as "still broken".
+
+**Text from the tested site is treated as data.** The browser agent, the model that writes the fix list and the fix prompt are each told that words found on a page are something to evaluate and never instructions to follow.
 
 ## What it found when it tested itself
 
@@ -93,6 +98,8 @@ I pointed the live app at its own address.
 - Using it exposed a timing bug of mine: the page could ask about a new retest a moment before its browser session was recorded, and the server closed the retest as finished. A run with no sessions now counts as still starting.
 - It showed that an uncollected session leaves credits on hold, so the spend caps were lowered to fit each session's step limit.
 
+I then had a second AI agent review the code with one job: assume it's broken and prove where. It reported 15 problems, including a test that could stay on "Writing the fix list" forever, duplicate work when a run is open in two tabs, and the proxy issue above. Fourteen are fixed and one is partly fixed (the last item under Limits). Each one that can be checked without a live run has a unit test in [src/server/tester.test.ts](src/server/tester.test.ts).
+
 ## Limits
 
 - The agent can't get past Google sign-in or emailed codes, so it tests an app up to that point.
@@ -100,6 +107,7 @@ I pointed the live app at its own address.
 - The live board updates when a session ends, about every 15 to 40 seconds.
 - A test only progresses while its page is open.
 - Screenshots come from Apify links that expire.
+- The daily limit and the retest guard are checked just before a run starts. Many requests sent at the same instant could slip past them. The credits at risk are the sender's own.
 - An AI newcomer is a good first pass. It doesn't replace watching real people use the app.
 
 ## Run it locally
@@ -120,7 +128,7 @@ npm test
 npx deepspace test run all --grep "Public sample"
 ```
 
-- Unit tests cover reading the browser agent's results, reading the fix list, the fix-prompt wording and the spend caps.
+- Unit tests cover reading the browser agent's results, reading the fix list, the fix-prompt wording, the spend caps, the public-link check and the review findings.
 - Browser tests cover the landing page, the sign-in boundary, and the sample playing through to the fix list with no server calls.
 - Tests that need two signed-in test accounts are skipped until those accounts exist.
 

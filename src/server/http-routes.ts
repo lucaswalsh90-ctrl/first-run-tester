@@ -238,7 +238,12 @@ export function registerAuthAndIntegrationRoutes(app: Hono<AppContext>): void {
     const target = integrationPath(integrationName, c.req.param('endpoint'))
     if (!target) return c.json({ error: 'Unknown integration' }, 404)
     const config = lookupOwn(integrations, integrationName)
-    const billingMode = config?.billing ?? 'developer'
+    // First-run tester change: the scaffold billed any integration that is NOT
+    // listed in src/integrations.ts to the app owner, for any signed-in caller.
+    // This app only uses the ones it lists, so an unlisted one is refused here
+    // and a stranger can't spend the owner's credits through this proxy.
+    if (!config) return c.json({ error: 'This app does not use that integration' }, 404)
+    const billingMode = config.billing
 
     // Sign-in is required unless the app opts this integration into anonymous
     // use; developer billing would otherwise let any visitor spend the owner's

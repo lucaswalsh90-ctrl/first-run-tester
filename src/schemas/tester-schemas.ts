@@ -6,15 +6,20 @@
  *   missions  one AI browser session inside a run (the agent clicking through the site)
  *   issues    problems found in a run, each with a ready-to-paste fix prompt
  *
- * Everyone sees only their own rows ('own' = record.createdBy). Runs, missions
- * and issues are written only by server actions (create: false for members),
- * so a user can't fake a test result from the browser console.
+ *   run_claims  one row per run whose fix list is being written (see below)
+ *
+ * Everyone sees only their own rows ('own' = record.createdBy), and that
+ * includes the app's owner: being admin does not show you other people's apps
+ * or reports. Runs, missions and issues are written and deleted only by server
+ * actions, so a user can't fake a test result or erase a run to dodge the
+ * daily limit from the browser console.
  */
 import type { CollectionSchema } from 'deepspace/schema'
 
-const ownOnly = {
-  member: { read: 'own', create: false, update: false, delete: 'own' },
-  admin: { read: true, create: false, update: true, delete: true },
+/** Read your own; only the server writes. */
+const ownReadOnly = {
+  member: { read: 'own', create: false, update: false, delete: false },
+  admin: { read: 'own', create: false, update: false, delete: false },
 } as const
 
 export const sitesSchema: CollectionSchema = {
@@ -27,7 +32,7 @@ export const sitesSchema: CollectionSchema = {
   ],
   permissions: {
     member: { read: 'own', create: true, update: 'own', delete: 'own' },
-    admin: { read: true, create: true, update: true, delete: true },
+    admin: { read: 'own', create: true, update: 'own', delete: 'own' },
   },
 }
 
@@ -42,12 +47,14 @@ export const runsSchema: CollectionSchema = {
     { name: 'status', storage: 'text', interpretation: 'plain' },
     { name: 'summary', storage: 'text', interpretation: 'plain' },
     { name: 'error', storage: 'text', interpretation: 'plain' },
+    /** How many times writing the fix list has failed (it is retried a few times). */
+    { name: 'summaryTries', storage: 'number', interpretation: 'plain' },
     /** Sample runs replay a saved real result and cost nothing. */
     { name: 'sample', storage: 'number', interpretation: { kind: 'boolean' } },
     { name: 'startedAt', storage: 'number', interpretation: 'plain' },
     { name: 'finishedAt', storage: 'number', interpretation: 'plain' },
   ],
-  permissions: ownOnly,
+  permissions: ownReadOnly,
 }
 
 export const missionsSchema: CollectionSchema = {
@@ -73,7 +80,7 @@ export const missionsSchema: CollectionSchema = {
     /** Sample runs reveal their saved result this many seconds after start. */
     { name: 'revealAfterSec', storage: 'number', interpretation: 'plain' },
   ],
-  permissions: ownOnly,
+  permissions: ownReadOnly,
 }
 
 export const issuesSchema: CollectionSchema = {
@@ -94,5 +101,25 @@ export const issuesSchema: CollectionSchema = {
     { name: 'status', storage: 'text', interpretation: 'plain' },
     { name: 'retestNote', storage: 'text', interpretation: 'plain' },
   ],
-  permissions: ownOnly,
+  permissions: ownReadOnly,
+}
+
+/**
+ * A claim ticket for the last step of a run (writing the fix list and sending
+ * the email). If the same run is open in two tabs, both ask the server to
+ * finish it at the same moment. `uniqueOn` makes the database refuse the second
+ * ticket, so that work happens once. Nobody can read or write these from the
+ * browser; only server actions use them.
+ */
+export const runClaimsSchema: CollectionSchema = {
+  name: 'run_claims',
+  columns: [
+    { name: 'runId', storage: 'text', interpretation: 'plain', required: true },
+    { name: 'claimedAt', storage: 'number', interpretation: 'plain' },
+  ],
+  uniqueOn: ['runId'],
+  permissions: {
+    member: { read: false, create: false, update: false, delete: false },
+    admin: { read: false, create: false, update: false, delete: false },
+  },
 }

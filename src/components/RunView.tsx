@@ -182,7 +182,7 @@ export function IssueCard({
         <pre className="mt-2 whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-xs text-foreground">{issue.fixPrompt}</pre>
       </details>
 
-      {issue.retestNote && (issue.status === 'fixed' || issue.status === 'still_broken') && (
+      {issue.retestNote && issue.status !== 'retesting' && (
         <p className="mt-3 text-sm text-muted-foreground">Retest: {issue.retestNote}</p>
       )}
 
