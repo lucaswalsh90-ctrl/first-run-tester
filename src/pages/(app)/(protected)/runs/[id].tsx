@@ -7,10 +7,13 @@
  * server pulls finished browser sessions from Apify and writes them as records,
  * which then appear here (and in any other tab showing this run).
  */
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from 'deepspace'
+import { APP_NAME } from '@/constants'
 import { callAction } from '@/lib/actions'
+import { AgentHandoff } from '@/components/AgentHandoff'
+import { Button } from '@/components/ui'
 import { Elapsed, IssueCard, MissionCard, RunStatus } from '@/components/RunView'
 import { TestLoginBox } from '@/components/TestLoginBox'
 import { completeTestLogin, useTestLogin } from '@/lib/test-login'
@@ -45,6 +48,7 @@ export default function RunPage() {
     .filter((r): r is NonNullable<typeof r> => !!r && (r.data.status === 'running' || r.data.status === 'summarizing'))
     .map((r) => r.recordId)
   usePolling(active)
+  useFinishedNotification(run?.data.status, site?.data.name)
 
   if (status === 'loading') {
     return (
@@ -116,7 +120,16 @@ export default function RunPage() {
         ) : issues.length === 0 && run.data.status === 'done' ? (
           <p className="text-sm text-muted-foreground">No problems found. A newcomer got through without getting stuck.</p>
         ) : (
-          <ol className="space-y-4">
+          <>
+            {site && !isSample && (
+              <AgentHandoff
+                site={site.data}
+                issues={issues.map((i) => withLiveRetestStatus(i.data, i.recordId, retests))}
+                appName={APP_NAME}
+                runId={run.recordId}
+              />
+            )}
+            <ol className="space-y-4">
             {issues.map((issue, n) => (
               <IssueCard
                 key={issue.recordId}
@@ -126,7 +139,8 @@ export default function RunPage() {
                 retestHint={isSample ? 'Add your own app to use Retest.' : undefined}
               />
             ))}
-          </ol>
+            </ol>
+          </>
         )}
       </div>
     </section>
@@ -155,6 +169,11 @@ export default function RunPage() {
         </div>
       </header>
 
+      {inFlight && (
+        <div className="mt-6">
+          <NotifyWhenDone />
+        </div>
+      )}
       {isSample && (
         <p className="mt-6 rounded-md bg-muted p-3 text-sm text-muted-foreground">
           This replays a real test recorded on Playwright's public to-do demo, so it costs nothing. Results arrive
@@ -179,6 +198,51 @@ export default function RunPage() {
           {sessions}
         </>
       )}
+    </div>
+  )
+}
+
+/**
+ * A test takes about a minute, so people switch tabs. If they have allowed
+ * notifications, tell them when it finishes. The email is still sent: that is
+ * the lasting record, and this is the tap on the shoulder.
+ *
+ * It only fires when the status changes while this page is open and the tab is
+ * in the background. Opening an old, finished report never notifies.
+ */
+function useFinishedNotification(status: Run['status'] | undefined, appName: string | undefined) {
+  const previous = useRef<Run['status'] | undefined>(undefined)
+  useEffect(() => {
+    const before = previous.current
+    previous.current = status
+    const wasRunning = before === 'running' || before === 'summarizing'
+    const finished = status === 'done' || status === 'failed'
+    if (!wasRunning || !finished) return
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted' || !document.hidden) return
+    new Notification(status === 'done' ? 'Your first-run test is finished' : 'Your first-run test failed', {
+      body:
+        status === 'done'
+          ? `${appName ?? 'Your app'}: the fix list is ready.`
+          : `${appName ?? 'Your app'}: open the tab to see what went wrong.`,
+    })
+  }, [status, appName])
+}
+
+/** Asks for permission only when the person presses the button, never on page load. */
+function NotifyWhenDone() {
+  const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>(() =>
+    typeof Notification === 'undefined' ? 'unsupported' : Notification.permission,
+  )
+  if (permission === 'unsupported' || permission === 'denied') return null
+  if (permission === 'granted') {
+    return <p className="text-sm text-muted-foreground">You can switch tabs. You'll get a notification when it's done.</p>
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button size="sm" variant="outline" onClick={async () => setPermission(await Notification.requestPermission())}>
+        Notify me when it's done
+      </Button>
+      <span className="text-sm text-muted-foreground">Tests take about a minute. Keep this tab open.</span>
     </div>
   )
 }

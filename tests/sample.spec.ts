@@ -28,6 +28,10 @@ test.describe('Public sample', () => {
     await issues.first().getByText('Fix prompt for your coding agent').click()
     await expect(issues.first().locator('pre')).toContainText('Make the change directly in this repository')
 
+    // One button hands the whole list to a coding agent in a single paste.
+    await expect(page.getByRole('heading', { name: 'Hand this to your coding agent' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Copy all 5 fix prompts' })).toBeVisible()
+
     // Both sessions show their steps with no placeholder, and a hesitation is flagged.
     await expect(page.getByRole('heading', { name: 'First look' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Main goal' })).toBeVisible()

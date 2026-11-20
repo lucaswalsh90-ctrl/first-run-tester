@@ -18,7 +18,8 @@ When you build with a coding agent, the agent that checks your app is the one th
 5. Each problem comes with a prompt for your own coding agent, worded so it edits your repository and says when the fix is done.
 6. After you fix something, **Retest** reruns one session and marks the problem Fixed or Still broken.
 7. If your app sits behind sign-in, you can give the newcomer a throwaway **test login**.
-8. The report is emailed to you and kept in your history.
+8. A test takes about a minute, so you can ask for a browser notification when it finishes.
+9. The report is emailed to you and kept in your history.
 
 ## Two front doors: one for people, one for coding agents
 
@@ -28,7 +29,9 @@ The person who reads the fix list usually isn't the one who fixes it. Their codi
 npx deepspace agent invoke first-run-tester first_run_fix_list --input '{"url":"https://my-app.app.space"}' --json
 ```
 
-It returns the ranked problems, each with its fix prompt and a "done when" check. A second tool, `first_run_reports`, lists your apps and their latest tests. [agent-skill/first-run-fixes/SKILL.md](agent-skill/first-run-fixes/SKILL.md) is a small skill that walks a coding agent through the loop. To use it, copy that folder into your project's `.claude/skills/`.
+Every report shows this command for its own test, next to a "Copy all fix prompts" button that puts the whole list in one paste. A website can't push a prompt into a coding agent, so the report offers the two things that work: paste once, or let the agent fetch.
+
+The command returns the ranked problems, each with its fix prompt and a "done when" check. A second tool, `first_run_reports`, lists your apps and their latest tests. [agent-skill/first-run-fixes/SKILL.md](agent-skill/first-run-fixes/SKILL.md) is a small skill that walks a coding agent through the loop. To use it, copy that folder into your project's `.claude/skills/`.
 
 This door is read-only on purpose. An agent sees only the signed-in person's own reports, can't change anything, and can't start a test or a retest, so it can never spend your credits. The retest stays a person's click, and it is the only thing that marks a problem fixed.
 

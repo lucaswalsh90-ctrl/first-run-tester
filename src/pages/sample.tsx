@@ -14,6 +14,7 @@
 import { Link } from 'react-router-dom'
 import { Seo } from '../components/Seo'
 import { Wordmark } from '../components/Wordmark'
+import { AgentHandoff } from '../components/AgentHandoff'
 import { IssueCard, MissionCard } from '../components/RunView'
 import { Badge } from '../components/ui'
 import type { Mission } from '../lib/types'
@@ -64,6 +65,14 @@ export default function SamplePage() {
             your coding agent.
           </p>
           <p className="mb-4 mt-3 max-w-2xl text-lg text-foreground">{SAMPLE_SUMMARY.summary}</p>
+          <AgentHandoff
+            site={SAMPLE_SITE}
+            issues={SAMPLE_SUMMARY.issues.map((issue) => ({
+              title: issue.title,
+              fixPrompt: fixPrompt(SAMPLE_SITE, issue),
+              status: 'open' as const,
+            }))}
+          />
           <ol className="space-y-4">
             {SAMPLE_SUMMARY.issues.map((issue, n) => (
               <IssueCard
