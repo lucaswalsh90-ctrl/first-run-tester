@@ -57,6 +57,24 @@ export function setAsideTestLimits<T extends { title: string; detail: string }>(
   }
 }
 
+/**
+ * Across many tests at once: the issues that count, with every finding the
+ * test browser caused left out. The home screen uses it so its numbers agree
+ * with each report. (Tests run since this file existed never save such
+ * findings; this covers the ones saved before.)
+ */
+export function countedIssues<T extends { recordId: string; data: { runId: string; title: string; detail: string } }>(
+  issues: T[],
+  sessions: Array<{ data: Session & { runId: string } }>,
+): T[] {
+  const limitedRuns = new Set(
+    [...new Set(sessions.map((s) => s.data.runId))].filter((runId) =>
+      hitGraphicsLimit(sessions.filter((s) => s.data.runId === runId).map((s) => s.data)),
+    ),
+  )
+  return issues.filter((i) => !(limitedRuns.has(i.data.runId) && blamesGraphicsLimit(i.data)))
+}
+
 /** The words shown on a report (and sent to a coding agent) when the limit was hit. */
 export const GRAPHICS_LIMIT = {
   title: "The test browser couldn't draw part of this app",

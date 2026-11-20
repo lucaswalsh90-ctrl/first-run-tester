@@ -1,6 +1,6 @@
 /** Unit tests for spotting the test browser's own limits. */
 import { describe, expect, it } from 'vitest'
-import { blamesGraphicsLimit, hitGraphicsLimit, setAsideTestLimits } from './test-limit'
+import { blamesGraphicsLimit, countedIssues, hitGraphicsLimit, setAsideTestLimits } from './test-limit'
 
 // The wording a real session used on a map app (first real test of someone else's app).
 const mapSession = {
@@ -58,5 +58,26 @@ describe('setAsideTestLimits', () => {
   it('blamesGraphicsLimit looks at the title and the detail', () => {
     expect(blamesGraphicsLimit({ title: 'WebGL error shown', detail: '' })).toBe(true)
     expect(blamesGraphicsLimit({ title: 'Small text', detail: 'Hard to read' })).toBe(false)
+  })
+})
+
+describe('countedIssues', () => {
+  const row = (recordId: string, runId: string, title: string, detail: string) => ({ recordId, data: { runId, title, detail } })
+  const issues = [
+    row('a', 'map-run', 'Map never loads', 'A WebGL context creation failure instead of a map.'),
+    row('b', 'map-run', 'No introduction', 'Opens straight onto /create.'),
+    row('c', 'other-run', 'Docs mention WebGL', 'The WebGL tutorial link is hard to find.'),
+  ]
+  const sessions = [
+    { data: { runId: 'map-run', ...mapSession } },
+    { data: { runId: 'other-run', ...fineSession } },
+  ]
+
+  it('leaves out findings the test browser caused, only in the tests where it hit its limit', () => {
+    expect(countedIssues(issues, sessions).map((i) => i.recordId)).toEqual(['b', 'c'])
+  })
+
+  it('counts everything when no sessions are loaded yet', () => {
+    expect(countedIssues(issues, [])).toHaveLength(3)
   })
 })

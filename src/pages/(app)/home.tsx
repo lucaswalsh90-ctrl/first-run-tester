@@ -21,8 +21,9 @@ import { SIGN_IN_COPY } from '@/constants'
 import { callAction } from '@/lib/actions'
 import { fixProgress, siteHistory, type HistoryEntry } from '@/lib/history'
 import { clearLink, readLink, withScheme } from '@/lib/prefill'
+import { countedIssues } from '@/lib/test-limit'
 import { completeTestLogin, testLoginIsHalfFilled } from '@/lib/test-login'
-import type { Issue, Run, Site } from '@/lib/types'
+import type { Issue, Mission, Run, Site } from '@/lib/types'
 import { isPublicHttpUrl } from '@/lib/url'
 import { cn } from '@/lib/utils'
 import { SAMPLE_SITE, SAMPLE_SUMMARY } from '@/server/sample-run'
@@ -160,7 +161,11 @@ function SignedInHome() {
   const { error } = useToast()
   const { records: sites, status, error: sitesError } = useQuery<Site>('sites', { orderBy: 'createdAt', orderDir: 'desc' })
   const { records: runs } = useQuery<Run>('runs', { orderBy: 'createdAt', orderDir: 'desc' })
-  const { records: issues } = useQuery<Issue>('issues')
+  const { records: allIssues } = useQuery<Issue>('issues')
+  // Sessions are loaded only to spot tests where the test browser hit its own
+  // limit, so the counts here match what each report shows.
+  const { records: sessions } = useQuery<Mission>('missions')
+  const issues = countedIssues(allIssues, sessions)
   const { ready, removeConfirmed } = useMutations<Site>('sites')
   const [busy, setBusy] = useState<string | null>(null)
   const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null)
