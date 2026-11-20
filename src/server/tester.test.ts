@@ -9,10 +9,12 @@ import {
   firstJsonObject,
   fixPrompt,
   isFinished,
+  loginCredentials,
   planFullTest,
   planRetest,
   readBrowserAgentRun,
   readSummary,
+  readTestLogin,
   spendCapUsd,
   summaryRequest,
 } from './tester'
@@ -232,5 +234,57 @@ describe('isPublicHttpUrl', () => {
       '',
     ]
     for (const url of blocked) expect(isPublicHttpUrl(url), url).toBe(false)
+  })
+})
+
+describe('test login', () => {
+  const login = { email: 'tester@deepspace.test', password: 'made-up-for-this-test' }
+
+  it('is optional: nothing typed means no login', () => {
+    expect(readTestLogin(undefined)).toBeUndefined()
+    expect(readTestLogin(null)).toBeUndefined()
+    expect(readTestLogin({ email: '  ', password: '' })).toBeUndefined()
+  })
+
+  it('refuses a half-filled or malformed login with a clear message', () => {
+    expect(readTestLogin({ email: 'tester@deepspace.test', password: '' })).toEqual({ error: 'The test login needs a password.' })
+    expect(readTestLogin({ email: 'not-an-email', password: 'x' })).toHaveProperty('error')
+    expect(readTestLogin({ email: 'a@b.c', password: 'x'.repeat(201) })).toHaveProperty('error')
+    expect(readTestLogin({ email: 42, password: ['x'] })).toBeUndefined()
+  })
+
+  it('accepts a complete login and trims the email', () => {
+    expect(readTestLogin({ email: ' tester@deepspace.test ', password: ' keep spaces ' })).toEqual({
+      email: 'tester@deepspace.test',
+      password: ' keep spaces ',
+    })
+  })
+
+  it('is typed only on the tested site, never elsewhere', () => {
+    const creds = loginCredentials('https://my-app.app.space/some/page?x=1', login)
+    expect(creds.map((c) => c.kind)).toEqual(['username', 'password'])
+    for (const c of creds) expect(c.origins).toEqual(['https://my-app.app.space'])
+  })
+
+  it('goes in the credentials field and never into the instructions the AI reads', () => {
+    const [firstLook, mainGoal] = planFullTest('https://my-app.app.space', 'create a project', true)
+    const retest = planRetest('https://my-app.app.space', 'create a project', { title: 't', check: 'c' }, true)
+    for (const plan of [firstLook, mainGoal, retest]) {
+      const req = browserAgentRequest('https://my-app.app.space', plan, login)
+      expect(req.input.task).not.toContain(login.password)
+      expect(req.input.task).not.toContain(login.email)
+      expect(JSON.stringify(req.input.credentials)).toContain(login.password)
+    }
+    expect(mainGoal.task).toContain('test_email')
+    expect(mainGoal.task).toContain('Do not sign in with Google')
+    expect(firstLook.task).not.toContain('test_email')
+  })
+
+  it('sends no credentials field when there is no login, and gives a login session more steps', () => {
+    const without = planFullTest('https://my-app.app.space', 'x')[1]
+    const withLogin = planFullTest('https://my-app.app.space', 'x', true)[1]
+    expect(browserAgentRequest('https://my-app.app.space', without).input).not.toHaveProperty('credentials')
+    expect(withLogin.maxSteps).toBeGreaterThan(without.maxSteps)
+    expect(without.task).toContain('newcomer@example.com')
   })
 })

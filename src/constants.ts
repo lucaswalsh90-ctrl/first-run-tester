@@ -1,6 +1,9 @@
 /** App name — replaced by the CLI during scaffolding */
 export const APP_NAME = 'first-run-tester'
 
+/** The name people see (the slug above is the address). */
+export const APP_TITLE = 'First-run tester'
+
 /** Immutable app identity — data scope keys to this, so renames never
  *  strand your records.
  *

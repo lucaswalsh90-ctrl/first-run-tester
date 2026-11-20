@@ -18,6 +18,11 @@
 
 export const THEMES = [
   {
+    id: 'proof',
+    label: 'Proof',
+    description: "First-run tester's theme: a paper-like test report with one vermilion accent.",
+  },
+  {
     id: 'slate',
     label: 'Slate',
     description: 'Neutral dark placeholder default. Replace with your own theme.',

@@ -51,3 +51,36 @@ test.describe('Public sample', () => {
     await expect(page.getByRole('heading', { name: 'Browser sessions' })).toHaveCount(0)
   })
 })
+
+/**
+ * A signed-out visitor to /home sees the product in preview form, not an empty
+ * sign-in gate. (The app's own first-run test flagged the gate twice.)
+ */
+test.describe('Signed-out home preview', () => {
+  test('shows the real screen with an example and a way to sign in', async ({ page }) => {
+    const errors = captureConsoleErrors(page)
+    await page.goto('/home')
+
+    await expect(page.getByRole('heading', { name: 'Your apps', level: 1 })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText('This is a preview.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Sign in to start' })).toBeVisible()
+
+    // The form is there to look at, but can't be used until you sign in.
+    await expect(page.getByLabel('Public link')).toBeDisabled()
+
+    // The example app links to its finished report, which needs no sign-in.
+    await expect(page.getByText('TodoMVC demo')).toBeVisible()
+    await page.getByRole('link', { name: 'Open its finished report' }).click()
+    await expect(page).toHaveURL(/\/sample$/)
+    await expect(page.getByRole('heading', { name: 'A sample report' })).toBeVisible()
+
+    expect(errors).toEqual([])
+  })
+
+  test('asking to sign in opens the sign-in box with our wording', async ({ page }) => {
+    await page.goto('/home')
+    await page.getByRole('button', { name: 'Sign in to start' }).click()
+    await expect(page.getByText('Sign in to First-run tester')).toBeVisible()
+    await expect(page.getByText('Continuing with Google or GitHub creates your free account.')).toBeVisible()
+  })
+})

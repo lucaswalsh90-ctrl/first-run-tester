@@ -17,7 +17,8 @@ When you build with a coding agent, the agent that checks your app is the one th
 4. Claude turns both sessions into a ranked fix list.
 5. Each problem comes with a prompt for your own coding agent, worded so it edits your repository and says when the fix is done.
 6. After you fix something, **Retest** reruns one session and marks the problem Fixed or Still broken.
-7. The report is emailed to you and kept in your history.
+7. If your app sits behind sign-in, you can give the newcomer a throwaway **test login**.
+8. The report is emailed to you and kept in your history.
 
 ## How it works
 
@@ -46,7 +47,10 @@ The four collections are in [src/schemas/tester-schemas.ts](src/schemas/tester-s
 | [src/actions/index.ts](src/actions/index.ts) | The four server actions: `startTest`, `startSample`, `checkRun`, `retestIssue` |
 | [src/server/tester.ts](src/server/tester.ts) | The instructions given to the browser agent, reading its results, the fix-list request, the fix-prompt wording, spend caps |
 | [src/server/sample-run.ts](src/server/sample-run.ts) | A real test saved on 2026-11-20, shown by the sample report |
-| [src/components/RunView.tsx](src/components/RunView.tsx) | The report pieces: session card, step row with confidence bar, issue card |
+| [src/components/RunView.tsx](src/components/RunView.tsx) | The report pieces: session card, hesitation trace, step row, issue card |
+| [src/lib/test-login.ts](src/lib/test-login.ts), [src/components/TestLoginBox.tsx](src/components/TestLoginBox.tsx) | The optional test login, held in the tab's memory only |
+| [src/pages/(app)/home.tsx](<src/pages/(app)/home.tsx>) | Your apps, with a preview for signed-out visitors |
+| [src/pages/index.tsx](src/pages/index.tsx), [src/themes.css](src/themes.css) | The landing page (its design direction is written at the top) and the theme |
 | [src/pages/(app)/(protected)/runs/[id].tsx](<src/pages/(app)/(protected)/runs/[id].tsx>) | The live run board |
 | [src/pages/sample.tsx](src/pages/sample.tsx) | The public sample page |
 
@@ -88,6 +92,8 @@ A full test cost roughly 85 to 90 DeepSpace credits in testing, and a retest abo
 
 **Failures don't waste a paid test.** If writing the fix list fails, it's tried again up to three times before the run is marked failed. A retest that crashes or times out reopens the issue and says nothing was checked. It never reports that as "still broken".
 
+**A test login is passed through and never stored.** The agent can't sign in with Google or GitHub: Google blocks automated browsers, and it would mean handing over a real account. So the app accepts an email and password for a throwaway test account. On a DeepSpace app you make one with `npx deepspace test accounts create`. The login lives in your browser tab's memory, travels once to the worker and on to Apify in the agent's encrypted credentials field, and is typed only on your app's own address. It is never written to the database, to a log, or into the instructions the AI reads. A run only records that a login was used. The tradeoff is that you type it again after a reload.
+
 **Text from the tested site is treated as data.** The browser agent, the model that writes the fix list and the fix prompt are each told that words found on a page are something to evaluate and never instructions to follow.
 
 ## What it found when it tested itself
@@ -102,9 +108,21 @@ After those fixes I ran it on itself again. Both sessions reached the goal this 
 
 I then had a second AI agent review the code with one job: assume it's broken and prove where. It reported 15 problems, including a test that could stay on "Writing the fix list" forever, duplicate work when a run is open in two tabs, and the proxy issue above. Fourteen are fixed and one is partly fixed (the last item under Limits). Each one that can be checked without a live run has a unit test in [src/server/tester.test.ts](src/server/tester.test.ts).
 
+## Design
+
+The look follows DeepSpace's design guide, and the direction is written as a comment at the top of [src/pages/index.tsx](src/pages/index.tsx).
+
+- **Idea:** a test report that reads like a proof sheet handed back by a careful reader, with a mark wherever they stumbled.
+- **Signature:** the hesitation trace. One bar per step, as tall as the agent was sure, with the unsure steps in the accent colour. It appears in the landing page's hero, on every session card and in the icon.
+- **Colour:** warm paper off-white, ink text and one vermilion accent, used only for buttons and hesitations. Status colours are darkened so white text on them passes the WCAG 4.5:1 contrast floor.
+- **Type:** IBM Plex Sans for text and IBM Plex Mono for numbers and labels, so the report reads like a lab readout. The fonts ship with the app, so no outside font service is called.
+- **Motion:** the hero's lines ink in one after another, once. They start faintly visible, so a screenshot or a visitor who looks early still sees the whole report. It switches off for people who ask for reduced motion.
+- **Signed-out home:** a visitor sees the real screen in preview form with an example, in place of an empty sign-in gate. The app's own self-test flagged the gate twice.
+
 ## Limits
 
-- The agent can't get past Google sign-in or emailed codes, so it tests an app up to that point.
+- The agent can't use Google or GitHub sign-in or emailed codes. Apps behind sign-in need a test login with an email and password.
+- A test login passes through DeepSpace's proxy and Apify on its way to your app. Use a throwaway test account, never a real one.
 - It needs a public link. It can't reach an app running only on your laptop.
 - The live board updates when a session ends, about every 15 to 40 seconds.
 - A test only progresses while its page is open.
@@ -130,13 +148,12 @@ npm test
 npx deepspace test run all --grep "Public sample"
 ```
 
-- Unit tests cover reading the browser agent's results, reading the fix list, the fix-prompt wording, the spend caps, the public-link check and the review findings.
-- Browser tests cover the landing page, the sign-in boundary, and the sample report showing its fix list with no server calls.
+- Unit tests cover reading the browser agent's results, reading the fix list, the fix-prompt wording, the spend caps, the public-link check, the test login and the review findings.
+- Browser tests cover the landing page, the sign-in boundary, the signed-out home preview, and the sample report showing its fix list with no server calls.
 - Tests that need two signed-in test accounts are skipped until those accounts exist.
 
 ## What I'd build next
 
-- A test login field, so the agent can get past email sign-in on apps that have one.
 - Human testers on the same board, with an "I'm stuck" button.
 - A scheduled retest after every deploy.
 - Comparing two runs to see what a release changed.

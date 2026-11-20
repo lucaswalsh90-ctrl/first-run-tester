@@ -9,6 +9,7 @@ export type Run = {
   status: 'running' | 'summarizing' | 'done' | 'failed'
   summary?: string
   error?: string
+  usedLogin?: boolean
   sample?: boolean
   startedAt: number
   finishedAt?: number

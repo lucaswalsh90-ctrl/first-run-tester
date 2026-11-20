@@ -13,6 +13,7 @@
  */
 import { Link } from 'react-router-dom'
 import { Seo } from '../components/Seo'
+import { Wordmark } from '../components/Wordmark'
 import { IssueCard, MissionCard } from '../components/RunView'
 import { Badge } from '../components/ui'
 import type { Mission } from '../lib/types'
@@ -32,16 +33,19 @@ const MISSIONS: Mission[] = SAMPLE_MISSIONS.map((saved, i) => ({
 export default function SamplePage() {
   return (
     <>
-      <Seo {...seo} title="Sample first-run test | first-run-tester" path="/sample" />
+      <Seo {...seo} title="A sample report | First-run tester" path="/sample" />
       <div className="mx-auto max-w-4xl px-4 py-8">
-        <Link to="/" className="text-sm text-muted-foreground underline-offset-4 hover:underline">← Back</Link>
+        <Link to="/" className="flex w-fit items-center gap-2 text-sm font-semibold tracking-tight text-foreground">
+          <Wordmark />
+          First-run tester
+        </Link>
 
         <header className="mt-3 flex flex-wrap items-start justify-between gap-3">
-          <h1 className="text-2xl font-semibold text-foreground">A sample report</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">A sample report</h1>
           <Badge variant="success">Finished test</Badge>
         </header>
 
-        <div className="mt-4 rounded-md border border-border bg-muted/40 p-4 text-sm text-foreground">
+        <div className="mt-4 rounded-md bg-muted p-4 text-sm text-foreground">
           <p>
             This is a real report from testing <strong>someone else's app</strong>: Playwright's public to-do
             demo at <span className="break-all">{SAMPLE_SITE.url}</span>. It is here so you can see what you
@@ -54,12 +58,12 @@ export default function SamplePage() {
         </div>
 
         <section className="mt-10">
-          <h2 className="text-lg font-semibold text-foreground">1. The fix list</h2>
+          <h2 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">1 · The fix list</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             What the newcomer ran into, most serious first. Open a fix prompt to see what you would paste into
             your coding agent.
           </p>
-          <p className="mb-4 mt-3 text-sm text-foreground">{SAMPLE_SUMMARY.summary}</p>
+          <p className="mb-4 mt-3 max-w-2xl text-lg text-foreground">{SAMPLE_SUMMARY.summary}</p>
           <ol className="space-y-4">
             {SAMPLE_SUMMARY.issues.map((issue, n) => (
               <IssueCard
@@ -73,7 +77,7 @@ export default function SamplePage() {
         </section>
 
         <section className="mt-12">
-          <h2 className="text-lg font-semibold text-foreground">2. What the newcomer did, step by step</h2>
+          <h2 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">2 · What the newcomer did, step by step</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Two browser sessions ran at the same time, each with its own job (shown under its name). The bar
             under each step shows how sure the agent was. Low numbers mark the places a real newcomer would
@@ -86,7 +90,7 @@ export default function SamplePage() {
           </div>
         </section>
 
-        <footer className="mt-12 rounded-lg border border-border p-5">
+        <footer className="mt-12 rounded-lg border border-border bg-card p-5">
           <h2 className="font-medium text-foreground">Try it on your own app</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Sign in with Google or GitHub (either one creates your free DeepSpace account if you're new). A test
@@ -95,7 +99,7 @@ export default function SamplePage() {
           </p>
           <Link
             to="/home"
-            className="mt-4 inline-flex items-center rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            className="mt-4 inline-flex items-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
             Test your app
           </Link>

@@ -17,7 +17,7 @@ export interface NavItem {
 
 export const nav: NavItem[] = [
   { path: '/home', label: 'Your apps' },
-  { path: '/settings', label: 'Settings' },
+  // The /settings page still exists (it is the starter's), but it is left out of the nav.
   // The /api-status debug page still exists — add
   // `{ path: '/api-status', label: 'API Status', devOnly: true }` to surface it.
   // ── Features add nav items below this line ──

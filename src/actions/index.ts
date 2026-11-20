@@ -27,12 +27,14 @@ import {
   planFullTest,
   planRetest,
   readBrowserAgentRun,
+  readTestLogin,
   readSummary,
   reportEmail,
   summaryRequest,
   type DraftIssue,
   type MissionPlan,
   type MissionResult,
+  type TestLogin,
 } from '../server/tester'
 import { SAMPLE_MISSIONS, SAMPLE_SITE, SAMPLE_SUMMARY } from '../server/sample-run'
 
@@ -47,6 +49,7 @@ interface Run {
   summary?: string
   error?: string
   summaryTries?: number
+  usedLogin?: boolean
   sample?: boolean
   startedAt: number
   finishedAt?: number
@@ -116,9 +119,20 @@ const overLimit = () =>
       'Try again later, or watch the sample.',
   )
 
-/** Starts one browser session at Apify and records it as a running mission. */
-async function launchMission(tools: ActionTools, runId: string, url: string, plan: MissionPlan, order: number) {
-  const started = await tools.integration<{ jobId?: string }>('apify/run-actor', browserAgentRequest(url, plan))
+/**
+ * Starts one browser session at Apify and records it as a running mission.
+ * A test login, if given, goes to Apify inside the request and nowhere else:
+ * the mission record below holds the instructions, which never contain it.
+ */
+async function launchMission(
+  tools: ActionTools,
+  runId: string,
+  url: string,
+  plan: MissionPlan,
+  order: number,
+  login?: TestLogin,
+) {
+  const started = await tools.integration<{ jobId?: string }>('apify/run-actor', browserAgentRequest(url, plan, login))
   const base = { runId, order, title: plan.title, task: plan.task }
   if (!started.success || !started.data?.jobId) {
     const why = started.success ? 'The browser agent did not start.' : started.error
@@ -297,6 +311,8 @@ export const actions: Record<string, ActionHandler<Env>> = {
     const site = await getOwned<Site>(tools, 'sites', params.siteId, userId)
     if (!site) return fail('Site not found.')
     if (!isPublicHttpUrl(site.data.url)) return fail(NEEDS_PUBLIC_LINK)
+    const login = readTestLogin(params.login)
+    if (login && 'error' in login) return fail(login.error)
     if ((await realRunsToday(tools, userId)) >= LIMITS.realRunsPerUserPerDay) return overLimit()
 
     const run = await tools.create('runs', {
@@ -304,14 +320,18 @@ export const actions: Record<string, ActionHandler<Env>> = {
       kind: 'full',
       status: 'running',
       sample: false,
+      usedLogin: !!login,
       startedAt: Date.now(),
     } satisfies Run)
     if (!run.success) return run
     const runId = run.data.recordId
 
     // Both sessions start now and run side by side, each in a fresh browser.
-    const plans = planFullTest(site.data.url, site.data.goal)
-    const launched = await Promise.all(plans.map((plan, i) => launchMission(tools, runId, site.data.url, plan, i)))
+    // Only the session that pursues the goal gets the login. The first look stays signed out.
+    const plans = planFullTest(site.data.url, site.data.goal, !!login)
+    const launched = await Promise.all(
+      plans.map((plan, i) => launchMission(tools, runId, site.data.url, plan, i, plan.title === 'Main goal' ? login : undefined)),
+    )
     if (launched.every((l) => !l.ok)) {
       const error = launched.find((l) => !l.ok)?.error ?? 'The browser agent did not start.'
       await tools.update('runs', runId, { status: 'failed', error, finishedAt: Date.now() })
@@ -402,6 +422,8 @@ export const actions: Record<string, ActionHandler<Env>> = {
     const site = await getOwned<Site>(tools, 'sites', issue.data.siteId, userId)
     if (!site) return fail('Site not found.')
     if (!isPublicHttpUrl(site.data.url)) return fail(NEEDS_PUBLIC_LINK)
+    const login = readTestLogin(params.login)
+    if (login && 'error' in login) return fail(login.error)
 
     // Refuse only while a retest of this issue is really in flight. Checking the
     // runs themselves (not the issue's label) means a label left on "retesting"
@@ -418,12 +440,13 @@ export const actions: Record<string, ActionHandler<Env>> = {
       issueId: issue.recordId,
       status: 'running',
       sample: false,
+      usedLogin: !!login,
       startedAt: Date.now(),
     } satisfies Run)
     if (!run.success) return run
     const runId = run.data.recordId
-    const plan = planRetest(site.data.url, site.data.goal, issue.data)
-    const launched = await launchMission(tools, runId, site.data.url, plan, 0)
+    const plan = planRetest(site.data.url, site.data.goal, issue.data, !!login)
+    const launched = await launchMission(tools, runId, site.data.url, plan, 0, login)
     if (!launched.ok) {
       await tools.update('runs', runId, { status: 'failed', error: launched.error, finishedAt: Date.now() })
       return fail(launched.error)

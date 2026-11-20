@@ -49,6 +49,8 @@ export const runsSchema: CollectionSchema = {
     { name: 'error', storage: 'text', interpretation: 'plain' },
     /** How many times writing the fix list has failed (it is retried a few times). */
     { name: 'summaryTries', storage: 'number', interpretation: 'plain' },
+    /** Whether a test login was used. Only this yes/no is kept, never the login itself. */
+    { name: 'usedLogin', storage: 'number', interpretation: { kind: 'boolean' } },
     /** Sample runs replay a saved real result and cost nothing. */
     { name: 'sample', storage: 'number', interpretation: { kind: 'boolean' } },
     { name: 'startedAt', storage: 'number', interpretation: 'plain' },

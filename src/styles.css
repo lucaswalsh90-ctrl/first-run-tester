@@ -1,6 +1,14 @@
 @import "tailwindcss" source(none);
 @import "./themes.css";
 
+/* Fonts ship with the app (no request to an outside font service).
+   IBM Plex Sans for text, IBM Plex Mono for numbers and readouts. */
+@import "@fontsource/ibm-plex-sans/latin-400.css";
+@import "@fontsource/ibm-plex-sans/latin-500.css";
+@import "@fontsource/ibm-plex-sans/latin-600.css";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
+
 /* Scan local source + SDK components for Tailwind class usage */
 @source "./**/*.{ts,tsx}";
 @source "../node_modules/deepspace/dist/**/*.js";
@@ -93,6 +101,37 @@
 
   /* Animations */
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
+
+  /* Type: font-sans and font-mono utilities */
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+/*
+ * The landing page's one motion: report lines "ink in" one after another,
+ * like a readout. Linear timing on purpose.
+ * Each element sets its own --tick-delay. Nothing loops.
+ */
+/* Lines start faint, never invisible: a screenshot or a visitor who looks
+   early still sees the whole report (a lesson from the app's own self-test). */
+@keyframes tick-in {
+  from { opacity: 0.14; }
+}
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+}
+.tick-in {
+  animation: tick-in 220ms linear both;
+  animation-delay: var(--tick-delay, 0ms);
+}
+.bar-grow {
+  transform-origin: left;
+  animation: bar-grow 420ms linear both;
+  animation-delay: var(--tick-delay, 0ms);
+}
+/* People who ask for less motion get the finished report straight away. */
+@media (prefers-reduced-motion: reduce) {
+  .tick-in, .bar-grow { animation: none; }
 }
 
 /* Theme override blocks live in `themes.css` — imported above. */
@@ -164,7 +203,7 @@
   }
 
   body {
-    font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-sans);
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
