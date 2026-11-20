@@ -20,6 +20,18 @@ When you build with a coding agent, the agent that checks your app is the one th
 7. If your app sits behind sign-in, you can give the newcomer a throwaway **test login**.
 8. The report is emailed to you and kept in your history.
 
+## Two front doors: one for people, one for coding agents
+
+The person who reads the fix list usually isn't the one who fixes it. Their coding agent is. So the app has a second door, built with DeepSpace's agent tools, that lets Claude Code, Cursor or Codex read a report directly:
+
+```bash
+npx deepspace agent invoke first-run-tester first_run_fix_list --input '{"url":"https://my-app.app.space"}' --json
+```
+
+It returns the ranked problems, each with its fix prompt and a "done when" check. A second tool, `first_run_reports`, lists your apps and their latest tests. [agent-skill/first-run-fixes/SKILL.md](agent-skill/first-run-fixes/SKILL.md) is a small skill that walks a coding agent through the loop. To use it, copy that folder into your project's `.claude/skills/`.
+
+This door is read-only on purpose. An agent sees only the signed-in person's own reports, can't change anything, and can't start a test or a retest, so it can never spend your credits. The retest stays a person's click, and it is the only thing that marks a problem fixed.
+
 ## How it works
 
 ```
@@ -47,6 +59,7 @@ The four collections are in [src/schemas/tester-schemas.ts](src/schemas/tester-s
 | [src/actions/index.ts](src/actions/index.ts) | The four server actions: `startTest`, `startSample`, `checkRun`, `retestIssue` |
 | [src/server/tester.ts](src/server/tester.ts) | The instructions given to the browser agent, reading its results, the fix-list request, the fix-prompt wording, spend caps |
 | [src/server/sample-run.ts](src/server/sample-run.ts) | A real test saved on 2026-11-20, shown by the sample report |
+| [src/ai/tools.ts](src/ai/tools.ts), [src/server/agent-reports.ts](src/server/agent-reports.ts) | The two tools a coding agent can call, and what they return |
 | [src/components/RunView.tsx](src/components/RunView.tsx) | The report pieces: session card, hesitation trace, step row, issue card |
 | [src/lib/test-login.ts](src/lib/test-login.ts), [src/components/TestLoginBox.tsx](src/components/TestLoginBox.tsx) | The optional test login, held in the tab's memory only |
 | [src/pages/(app)/home.tsx](<src/pages/(app)/home.tsx>) | Your apps, with a preview for signed-out visitors |
@@ -63,6 +76,7 @@ The four collections are in [src/schemas/tester-schemas.ts](src/schemas/tester-s
 | Permissions | Everyone sees only their own apps and reports, and that includes the app's owner. Reports can only be written or deleted by the server, so nobody can fake a result or erase a run from the browser console |
 | Server actions | Starting and collecting tests needs server-side rules (ownership checks, daily limit, spend caps) |
 | Integration proxy | Three outside services with no API keys in this repository |
+| Agent tools | A coding agent can read a report through the DeepSpace CLI, with the person's own permissions |
 | Per-user billing | Whoever runs a test pays for it. The starter's proxy would bill any unlisted integration to the owner, so this app refuses integrations it doesn't list |
 | Unique records | A one-per-run "claim" record means two open tabs can't both write the fix list or send the email |
 
@@ -86,7 +100,9 @@ A full test cost roughly 85 to 90 DeepSpace credits in testing, and a retest abo
 
 **Fix prompts use fixed wording.** The AI supplies the facts (what happened, where, what to change, how to check). The sentences around them are a template in `fixPrompt`, so every prompt reads the same way.
 
-**It never touches your code.** The app hands a prompt to your coding agent. Connecting to GitHub and editing a repository directly would need write access to someone's code, which is a trust question this version doesn't take on.
+**It never touches your code.** The app hands the fix list to your coding agent, as a prompt you paste or through the agent tools. Connecting to GitHub and editing a repository directly would need write access to someone's code, which is a trust question this version doesn't take on.
+
+**Why an app when a skill could do this.** A skill such as the open-source [naive-user](https://github.com/TechGardenCode/naive-user) runs the same kind of test inside your own coding agent, for free. That is a good fit for one developer. An app adds what a skill can't: nothing to install, a tester that has no access to your code at all, a saved history, a report you can open on any device, and a retest that someone other than the fixer runs. The small skill in this repo joins the two: the app tests, your agent fixes.
 
 **Spend limits are built in.** Each session has a step limit and a dollar cap sized to that limit. Each person gets 12 real runs in 24 hours, where a test and a retest each count as one.
 
@@ -148,12 +164,13 @@ npm test
 npx deepspace test run all --grep "Public sample"
 ```
 
-- Unit tests cover reading the browser agent's results, reading the fix list, the fix-prompt wording, the spend caps, the public-link check, the test login and the review findings.
+- Unit tests cover what the agent tools return, reading the browser agent's results, reading the fix list, the fix-prompt wording, the spend caps, the public-link check, the test login and the review findings.
 - Browser tests cover the landing page, the sign-in boundary, the signed-out home preview, and the sample report showing its fix list with no server calls.
 - Tests that need two signed-in test accounts are skipped until those accounts exist.
 
 ## What I'd build next
 
+- Letting a coding agent start a retest itself, once there is a safe way to cap what it can spend.
 - Human testers on the same board, with an "I'm stuck" button.
 - A scheduled retest after every deploy.
 - Comparing two runs to see what a release changed.

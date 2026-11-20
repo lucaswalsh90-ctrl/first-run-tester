@@ -1,30 +1,68 @@
 /**
- * AI Tool Definitions — converts DeepSpace BUILT_IN_TOOLS to Vercel AI SDK tools.
+ * The app's door for coding agents.
  *
- * The assistant can read AND modify data. Per-collection RBAC at the DO
- * layer is the actual security boundary — the user's role determines what
- * each tool call is allowed to do, regardless of what's in this allowlist.
- * Trim entries below if you want a stricter assistant for your app.
+ * A coding agent on the builder's machine (Claude Code, Cursor, Codex) reaches
+ * these tools through the DeepSpace CLI:
+ *
+ *   npx deepspace agent tools first-run-tester --json
+ *   npx deepspace agent invoke first-run-tester first_run_fix_list --input '{"url":"https://my-app.app.space"}' --json
+ *
+ * Two tools are this app's own: `first_run_reports` and `first_run_fix_list`.
+ * They let the agent that will fix the problems read them directly, instead
+ * of a person copying each fix prompt across by hand. The rest are DeepSpace's
+ * generic read tools.
+ *
+ * The door is read-only on purpose. The write tools the scaffold allowed
+ * (create, update, delete) are removed, and nothing here can start a test, so
+ * an agent can never spend the person's credits. Every call runs as the
+ * signed-in person, so an agent sees only that person's own apps and reports.
  */
 
 import { jsonSchema, tool } from 'ai'
 import type { ToolSet } from 'ai'
 import { z } from 'zod/v4'
 import { BUILT_IN_TOOLS, applyAiToolDefaults } from 'deepspace/worker'
-import type { ToolSchema, CollectionSchema } from 'deepspace/worker'
+import type { AgentToolContext, ToolSchema, CollectionSchema } from 'deepspace/worker'
+import type { Env } from '../../worker'
+import { fixList, listReports, type Issue, type Run, type Site } from '../server/agent-reports'
 
 type ToolExecutor = (toolName: string, params: Record<string, unknown>) => Promise<unknown>
 
-const ALLOWED_TOOL_NAMES = [
-  'schema.list',
-  'schema.describe',
-  'records.query',
-  'records.get',
-  'records.create',
-  'records.update',
-  'records.delete',
-  'user.current',
+/** Read-only: no create, update or delete. */
+const ALLOWED_TOOL_NAMES = ['schema.list', 'schema.describe', 'records.query', 'records.get', 'user.current']
+
+/** This app's own tools, described for the agent that will call them. */
+const FIRST_RUN_TOOLS: ToolSchema[] = [
+  {
+    name: 'first_run_reports',
+    description:
+      "List the person's apps in First-run tester, each with its latest finished test: a summary, how many " +
+      'problems are open, fixed or still broken, and a link to the report. Start here to see what there is.',
+    params: {},
+  },
+  {
+    name: 'first_run_fix_list',
+    description:
+      'Get the ranked fix list from a first-run test: what a first-time user ran into, with a ready-made fix ' +
+      'prompt and a "done when" check for each problem. Use this when asked to fix what First-run tester found. ' +
+      "Pass the app's url, or a runId from first_run_reports, or neither for the most recent test. Read-only: it " +
+      'cannot start a test or a retest.',
+    params: {
+      url: { type: 'string', description: "The tested app's address, for example https://my-app.app.space" },
+      runId: { type: 'string', description: 'A specific test, from first_run_reports' },
+      includeFixed: { type: 'boolean', description: 'Also return problems already confirmed fixed. Default false.' },
+    },
+  },
 ]
+
+/** Reads every row the caller may see in one collection (their own, by the collection's permissions). */
+async function readAll<T>(executor: ToolExecutor, collection: string): Promise<Array<{ recordId: string; data: T }>> {
+  const result = (await executor('records.query', { collection, limit: 500 })) as {
+    success?: boolean
+    data?: { records?: Array<{ recordId: string; data: T }> }
+  }
+  return result?.success ? (result.data?.records ?? []) : []
+}
 
 // ============================================================================
 // System prompt
@@ -77,8 +115,38 @@ export function buildSystemPrompt(appName: string, schemas: CollectionSchema[]):
 // Tool definitions
 // ============================================================================
 
-export function buildTools(executor: ToolExecutor): ToolSet {
+export function buildTools(executor: ToolExecutor, context?: AgentToolContext<Env>): ToolSet {
   const tools: ToolSet = {}
+
+  // Where a report lives on the web, so the agent can point the person at it.
+  const reportUrl = (runId: string) => `https://${context?.env.APP_NAME ?? 'first-run-tester'}.app.space/runs/${runId}`
+  const load = async () => ({
+    sites: await readAll<Site>(executor, 'sites'),
+    runs: await readAll<Run>(executor, 'runs'),
+    issues: await readAll<Issue>(executor, 'issues'),
+  })
+
+  for (const def of FIRST_RUN_TOOLS) {
+    tools[def.name] = tool({
+      description: def.description,
+      inputSchema: buildInputSchema(def),
+      execute: async (params: Record<string, unknown>) => {
+        const { sites, runs, issues } = await load()
+        if (def.name === 'first_run_reports') return { apps: listReports(sites, runs, issues, reportUrl) }
+        return fixList(
+          sites,
+          runs,
+          issues,
+          {
+            url: typeof params.url === 'string' ? params.url : undefined,
+            runId: typeof params.runId === 'string' ? params.runId : undefined,
+            includeFixed: params.includeFixed === true,
+          },
+          reportUrl,
+        )
+      },
+    })
+  }
 
   for (const def of BUILT_IN_TOOLS) {
     if (!ALLOWED_TOOL_NAMES.includes(def.name)) continue
