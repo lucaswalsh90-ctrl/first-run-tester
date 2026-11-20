@@ -18,9 +18,19 @@ export const BROWSER_AGENT = 'newpo/ai-browser-agent'
 /** Hard limits on every browser session, so one test can't run up a bill. */
 export const LIMITS = {
   maxStepsPerMission: 15,
-  maxUsdPerMission: 0.4,
   missionTimeoutSec: 300,
   realRunsPerUserPerDay: 5,
+}
+
+/**
+ * The most one session may cost at Apify, in dollars. The agent charges 2 cents
+ * to start and 1 cent per step, so the cap follows the step limit with a little
+ * room. Keeping it tight matters: DeepSpace holds a multiple of this cap from
+ * the user's credits while the session runs and refunds the unused part after.
+ * (The first version used a flat 40 cents, which held 160 credits per session.)
+ */
+export function spendCapUsd(maxSteps: number): number {
+  return Math.round((0.02 + maxSteps * 0.01 + 0.03) * 100) / 100
 }
 
 /** The model that writes the fix list: the cheapest one that does the job. */
@@ -88,7 +98,7 @@ export function planRetest(url: string, goal: string, issue: { title: string; ch
 export function browserAgentRequest(url: string, plan: MissionPlan) {
   return {
     actorId: BROWSER_AGENT,
-    maxTotalChargeUsd: LIMITS.maxUsdPerMission,
+    maxTotalChargeUsd: spendCapUsd(plan.maxSteps),
     timeout: LIMITS.missionTimeoutSec,
     input: {
       startUrl: url,
