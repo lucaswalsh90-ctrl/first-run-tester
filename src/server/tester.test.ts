@@ -124,10 +124,12 @@ describe('mission plans and requests', () => {
   })
 
   it('sizes the spend cap to the step limit', () => {
-    expect(spendCapUsd(6)).toBe(0.11)
-    expect(spendCapUsd(15)).toBe(0.2)
+    expect(spendCapUsd(6)).toBe(0.09)
+    expect(spendCapUsd(15)).toBe(0.18)
+    // A full test's two sessions together must stay under the hold a small balance can cover.
+    expect(Math.round((spendCapUsd(6) + spendCapUsd(15)) * 4 * 100)).toBe(108)
     const req = browserAgentRequest('https://example.com', planFullTest('https://example.com', 'x')[0])
-    expect(req.maxTotalChargeUsd).toBe(0.11)
+    expect(req.maxTotalChargeUsd).toBe(0.09)
     expect(req.input.startUrl).toBe('https://example.com')
   })
 

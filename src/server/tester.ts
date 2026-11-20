@@ -26,14 +26,23 @@ export const LIMITS = {
 }
 
 /**
- * The most one session may cost at Apify, in dollars. The agent charges 2 cents
- * to start and 1 cent per step, so the cap follows the step limit with a little
- * room. Keeping it tight matters: DeepSpace holds a multiple of this cap from
- * the user's credits while the session runs and refunds the unused part after.
- * (The first version used a flat 40 cents, which held 160 credits per session.)
+ * The most one session may cost at Apify, in dollars.
+ *
+ * The agent charges a fee to start and a fee per step, so the cap follows the
+ * step limit with a little headroom. Three real runs matched this formula to
+ * the cent (5 steps cost 7 cents, 3 cost 5, 8 cost 10).
+ *
+ * Keeping the cap tight matters: DeepSpace holds four times this amount from
+ * the user's credits while the session runs, and refunds the unused part
+ * after. The first version used a flat 40 cents, which held 160 credits per
+ * session. With these numbers a full test holds 108.
  */
+const START_FEE_USD = 0.02
+const PER_STEP_USD = 0.01
+const HEADROOM_USD = 0.01
+
 export function spendCapUsd(maxSteps: number): number {
-  return Math.round((0.02 + maxSteps * 0.01 + 0.03) * 100) / 100
+  return Math.round((START_FEE_USD + maxSteps * PER_STEP_USD + HEADROOM_USD) * 100) / 100
 }
 
 /** The model that writes the fix list: the cheapest one that does the job. */
