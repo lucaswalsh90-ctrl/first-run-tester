@@ -15,7 +15,7 @@ import { Link } from 'react-router-dom'
 import { Seo } from '../components/Seo'
 import { TopBar } from '../components/TopBar'
 import { AgentHandoff } from '../components/AgentHandoff'
-import { IssueCard, MissionCard } from '../components/RunView'
+import { IssueCard, MissionCard, SeverityKey } from '../components/RunView'
 import { Badge } from '../components/ui'
 import type { Mission } from '../lib/types'
 import { seo } from '../seo'
@@ -74,6 +74,7 @@ export default function SamplePage() {
               status: 'open' as const,
             }))}
           />
+          <SeverityKey />
           <ol className="space-y-4">
             {SAMPLE_SUMMARY.issues.map((issue, n) => (
               <IssueCard

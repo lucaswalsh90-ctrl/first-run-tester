@@ -53,6 +53,10 @@ test.describe('Public sample', () => {
     await expect(issues.first().getByRole('button', { name: /retest/i })).toHaveCount(0)
     await expect(issues.first().getByText('On your own app, a Retest button here checks this one problem again.')).toBeVisible()
 
+    // The three labels are explained above the list. This line was written by a coding agent
+    // that was handed the problem with the app's own fix prompt.
+    await expect(page.getByText('means a newcomer could not get through.')).toBeVisible()
+
     // Steps are shown in plain English, not in the browser agent's own shorthand.
     await expect(page.getByText('Ticked the checkbox "Toggle Todo"')).toBeVisible()
     await expect(page.getByText('one entry per Enter')).toHaveCount(0)

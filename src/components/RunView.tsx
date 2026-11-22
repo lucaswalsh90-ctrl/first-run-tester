@@ -337,6 +337,18 @@ export function StepRow({
   )
 }
 
+/** One line above the fix list saying what the three severity labels mean. */
+export function SeverityKey() {
+  return (
+    <p className="mb-4 max-w-2xl text-muted-foreground">
+      <strong className="font-semibold text-foreground">{SEVERITY[1].label}</strong> means a newcomer could not get
+      through. <strong className="font-semibold text-foreground">{SEVERITY[2].label}</strong> means they got through
+      but lost time or confidence. <strong className="font-semibold text-foreground">{SEVERITY[3].label}</strong> is
+      a small rough edge.
+    </p>
+  )
+}
+
 /**
  * One problem from the fix list. `onRetest` starts a retest and resolves with
  * an error message if it could not start; leave it out (with `retestHint`) on

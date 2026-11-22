@@ -14,7 +14,7 @@ import { APP_NAME } from '@/constants'
 import { callAction } from '@/lib/actions'
 import { AgentHandoff } from '@/components/AgentHandoff'
 import { Button } from '@/components/ui'
-import { Elapsed, IssueCard, MissionCard, RunStatus } from '@/components/RunView'
+import { Elapsed, IssueCard, MissionCard, RunStatus, SeverityKey } from '@/components/RunView'
 import { TestLoginBox } from '@/components/TestLoginBox'
 import { GRAPHICS_LIMIT, SIGN_IN_WALL_NOTE, hitSignInWall, setAsideTestLimits } from '@/lib/test-limit'
 import { completeTestLogin, useTestLogin } from '@/lib/test-login'
@@ -160,6 +160,7 @@ export default function RunPage() {
                 {site && !isSample && (
                   <AgentHandoff site={site.data} issues={checked.real} appName={APP_NAME} runId={run.recordId} />
                 )}
+                <SeverityKey />
                 <ol className="space-y-4">
                   {checked.real.map((issue, n) => (
                     <IssueCard
