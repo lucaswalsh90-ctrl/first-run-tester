@@ -100,7 +100,9 @@ test.describe('Signed-out home preview', () => {
     await page.goto('/home')
     await page.getByRole('button', { name: 'Sign in to start' }).click()
     await expect(page.getByText('Sign in to First-run tester')).toBeVisible()
-    await expect(page.getByText('Continuing with Google or GitHub creates your free account.')).toBeVisible()
+    // Wording from a real hand-off: a coding agent fetched this app's own report and made this change.
+    await expect(page.getByText('Continue with Google or GitHub to create your free account.')).toBeVisible()
+    await expect(page.getByText('The email form is only for accounts that already exist.')).toBeVisible()
   })
 })
 

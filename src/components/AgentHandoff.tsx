@@ -7,8 +7,10 @@
  * open your coding agent with the prompt already in it, copy everything in one
  * go, or have the agent fetch the list itself.
  */
+import { useState } from 'react'
 import { Button, useToast } from '@/components/ui'
 import { agentCommand, agentLinks, allFixPrompts, asExample, unfixed } from '@/lib/handoff'
+import { readFolder, saveFolder } from '@/lib/prefill'
 import type { Issue } from '@/lib/types'
 
 export function AgentHandoff({
@@ -27,10 +29,12 @@ export function AgentHandoff({
   example?: boolean
 }) {
   const { success, error } = useToast()
+  // The app's folder on this computer, remembered in this browser only.
+  const [folder, setFolder] = useState(() => readFolder(site.url))
   const todo = unfixed(issues).length
   if (todo === 0) return null
   const command = appName && runId ? agentCommand(appName, runId) : null
-  const links = appName && runId ? agentLinks(appName, runId, site) : []
+  const links = appName && runId ? agentLinks(appName, runId, site, folder) : []
 
   async function copy(text: string, what: string) {
     try {
@@ -88,8 +92,27 @@ export function AgentHandoff({
             ))}
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            It opens on this computer with the prompt waiting. Nothing is sent until you press Enter. Check it is
-            in your app's folder first.
+            It opens on this computer with the prompt waiting. Nothing is sent until you press Enter.
+          </p>
+          <label htmlFor="app-folder" className="mt-4 block font-medium text-foreground">
+            Your app's folder on this computer (optional)
+          </label>
+          <input
+            id="app-folder"
+            type="text"
+            value={folder}
+            onChange={(e) => {
+              setFolder(e.target.value)
+              saveFolder(site.url, e.target.value)
+            }}
+            placeholder="/Users/you/projects/my-app"
+            spellCheck={false}
+            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+          />
+          <p className="mt-1 text-sm text-muted-foreground">
+            {folder.trim()
+              ? 'Claude Code and Codex will open in this folder. It is saved in this browser only.'
+              : 'Without it the agent opens in your home folder and asks where the code is. Saved in this browser only.'}
           </p>
         </div>
       )}

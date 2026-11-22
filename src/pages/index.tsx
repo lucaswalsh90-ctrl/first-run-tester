@@ -46,9 +46,9 @@ const HOW = [
 
 const FACTS = [
   ['Why not your coding agent', 'It built the app, so it knows where things are. This one starts cold.'],
-  ['Your own app', 'A free DeepSpace account. Sign in with Google or GitHub.'],
+  ['Your account', 'Sign in to this site with Google or GitHub. Either one creates your free account.'],
   ['What a credit is', 'DeepSpace\'s currency. 100 credits is one US dollar.'],
-  ['Sign-in walls', "Give it a throwaway test login. It can't use Google sign-in."],
+  ['Apps with sign-in', "Give the tester a throwaway email and password. On your app it can't use Google sign-in or emailed codes."],
   ['Maps and 3D', "The test browser can't draw them, and the report says so."],
 ]
 

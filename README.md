@@ -35,7 +35,9 @@ Every report shows this command for its own test. A website can't open your term
 - **Copy all fix prompts.** The whole list in one paste.
 - **Let the agent fetch it.** Give your agent the command.
 
-The links carry a short prompt and leave the fix list to the command, because Claude Code caps a link's prompt at 5,000 characters and Cursor caps the whole link at 10,000. See [src/lib/handoff.ts](src/lib/handoff.ts).
+The links carry a short prompt and leave the fix list to the command, because Claude Code caps a link's prompt at 5,000 characters and Cursor caps the whole link at 10,000. The prompt names the tested app, so the agent can tell whether it is in the right folder before it runs anything. A link can't know where your code is, so the box has an optional field for your app's folder. It is kept in your browser only, and with it Claude Code and Codex open in that folder. See [src/lib/handoff.ts](src/lib/handoff.ts).
+
+This was tested as a real hand-off. A fresh agent in this repository was given exactly the prompt the link carries, for a saved test of this app. It confirmed the folder, ran the command, left two problems alone because the code already fixed them, made two small edits, and did not commit or deploy. The same prompt for a different app, given to an agent in this folder, stopped before running anything and asked where that app's code is.
 
 The command returns the ranked problems, each with its fix prompt and a "done when" check. A second tool, `first_run_reports`, lists your apps and their latest tests. [agent-skill/first-run-fixes/SKILL.md](agent-skill/first-run-fixes/SKILL.md) is a small skill that walks a coding agent through the loop. To use it, copy that folder into your project's `.claude/skills/`.
 

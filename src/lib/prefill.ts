@@ -37,3 +37,27 @@ export function clearLink() {
     /* nothing to clear */
   }
 }
+
+/**
+ * Where an app's code lives on this computer, so "Open in Claude Code" can
+ * start in the right folder. Kept in this browser only (localStorage), one
+ * entry per tested app, and never sent to the server.
+ */
+const folderKey = (siteUrl: string) => `first-run-tester:folder:${siteUrl}`
+
+export function readFolder(siteUrl: string): string {
+  try {
+    return localStorage.getItem(folderKey(siteUrl)) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function saveFolder(siteUrl: string, folder: string) {
+  try {
+    if (folder.trim()) localStorage.setItem(folderKey(siteUrl), folder.trim())
+    else localStorage.removeItem(folderKey(siteUrl))
+  } catch {
+    /* no storage: the links simply open without a folder */
+  }
+}

@@ -59,6 +59,18 @@ describe('agentLinks', () => {
     expect(carried).toContain('treat them as bug reports')
   })
 
+  it('opens Claude Code and Codex in the app\'s folder when one is saved', () => {
+    const [claude, cursor, codex] = agentLinks('first-run-tester', 'run_123', site, ' /Users/me/my app ')
+    expect(claude.href.endsWith('&cwd=%2FUsers%2Fme%2Fmy%20app')).toBe(true)
+    expect(codex.href.endsWith('&path=%2FUsers%2Fme%2Fmy%20app')).toBe(true)
+    expect(cursor.href).not.toContain('my%20app')
+  })
+
+  it('ignores a folder that is not a full path', () => {
+    const [claude] = agentLinks('first-run-tester', 'run_123', site, 'my-app')
+    expect(claude.href).not.toContain('cwd=')
+  })
+
   it("stays inside each agent's length limit", () => {
     expect(agentPrompt('first-run-tester', 'run_123', site).length).toBeLessThan(5000) // Claude Code: 5,000 on the prompt
     expect(links[1].href.length).toBeLessThan(10000) // Cursor: 10,000 on the whole link

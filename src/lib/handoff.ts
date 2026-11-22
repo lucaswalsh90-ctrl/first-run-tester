@@ -96,12 +96,17 @@ export function agentLinks(
   appName: string,
   runId: string,
   site: { name: string; url: string },
+  /** The app's folder on this computer, if the person has saved it. Opens the agent there. */
+  folder = '',
 ): Array<{ name: string; href: string }> {
   const prompt = encodeURIComponent(agentPrompt(appName, runId, site))
+  // Only a full path is passed on ("/Users/me/my-app" or "C:\\code\\my-app").
+  const path = /^(\/|[A-Za-z]:[\\/])/.test(folder.trim()) ? encodeURIComponent(folder.trim()) : ''
   return [
-    { name: 'Claude Code', href: `claude-cli://open?q=${prompt}` },
+    { name: 'Claude Code', href: `claude-cli://open?q=${prompt}${path ? `&cwd=${path}` : ''}` },
+    // Cursor's link has no folder setting: it opens in whatever project is already open.
     { name: 'Cursor', href: `https://cursor.com/link/prompt?text=${prompt}` },
-    { name: 'Codex', href: `codex://new?prompt=${prompt}` },
+    { name: 'Codex', href: `codex://new?prompt=${prompt}${path ? `&path=${path}` : ''}` },
   ]
 }
 
