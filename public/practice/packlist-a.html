@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Packlist</title>
+    <style>
+      :root { color-scheme: light; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #f6f5f1; color: #1c1b19; font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      main { max-width: 34rem; margin: 0 auto; padding: 2.5rem 1rem 4rem; }
+      h1 { margin: 0; font-size: 2rem; letter-spacing: -0.02em; }
+      .lead { margin: 0.25rem 0 1.5rem; color: #5c5a55; }
+      form { display: flex; gap: 0.5rem; align-items: end; }
+      .field { flex: 1; }
+      label { display: block; font-weight: 600; margin-bottom: 0.25rem; }
+      input[type='text'] { width: 100%; height: 2.75rem; padding: 0 0.75rem; border: 1px solid #b9b6ae; border-radius: 0.5rem; font: inherit; background: #fff; }
+      button { height: 2.75rem; padding: 0 1rem; border: 1px solid #b9b6ae; border-radius: 0.5rem; background: #fff; font: inherit; cursor: pointer; }
+      button.primary { background: #1c1b19; border-color: #1c1b19; color: #fff; font-weight: 600; }
+      button[aria-pressed='true'] { background: #1c1b19; border-color: #1c1b19; color: #fff; }
+      .note { min-height: 1.5rem; margin: 0.5rem 0 0; color: #a3361f; }
+      .bar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: space-between; margin: 1.5rem 0 0.5rem; }
+      .filters { display: flex; gap: 0.25rem; }
+      .filters button, .small { height: 2.25rem; padding: 0 0.75rem; font-size: 0.9rem; }
+      ul { list-style: none; margin: 0; padding: 0; background: #fff; border: 1px solid #dcd9d1; border-radius: 0.5rem; }
+      li { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; border-bottom: 1px solid #ecebe6; }
+      li:last-child { border-bottom: 0; }
+      li label { flex: 1; display: flex; align-items: center; gap: 0.6rem; margin: 0; font-weight: 400; cursor: pointer; }
+      li input { width: 1.2rem; height: 1.2rem; }
+      li.packed span { color: #8a877f; text-decoration: line-through; }
+      .empty { padding: 1.25rem 0.75rem; color: #5c5a55; }
+      .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; color: #5c5a55; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Packlist</h1>
+      <p class="lead">A packing list for your next trip. Add what you need to bring, then tick things off as you pack them.</p>
+
+      <form id="add-form">
+        <div class="field">
+          <label for="new-item">Add an item</label>
+          <input id="new-item" type="text" placeholder="e.g. Passport" autocomplete="off" />
+        </div>
+        <button class="primary" type="submit">Add</button>
+      </form>
+      <p class="note" id="note" role="status"></p>
+
+      <div class="bar">
+        <strong id="count">0 of 0 packed</strong>
+        <div class="filters" role="group" aria-label="Show">
+          <button type="button" data-filter="all" aria-pressed="true">All</button>
+          <button type="button" data-filter="todo" aria-pressed="false">Still to pack</button>
+          <button type="button" data-filter="packed" aria-pressed="false">Packed</button>
+        </div>
+      </div>
+
+      <ul id="list" aria-label="Packing list"></ul>
+
+      <div class="foot">
+        <span id="showing"></span>
+        <button class="small" type="button" id="clear">Clear packed items</button>
+      </div>
+    </main>
+
+    <script>
+      var KEY = 'packlist:' + location.pathname
+      var items = []
+      var filter = 'all'
+      try { items = JSON.parse(sessionStorage.getItem(KEY) || '[]') } catch (e) { items = [] }
+
+      var form = document.getElementById('add-form')
+      var input = document.getElementById('new-item')
+      var note = document.getElementById('note')
+      var list = document.getElementById('list')
+      var count = document.getElementById('count')
+      var showing = document.getElementById('showing')
+
+      function save() {
+        try { sessionStorage.setItem(KEY, JSON.stringify(items)) } catch (e) {}
+      }
+
+      function visible() {
+        if (filter === 'todo') return items.filter(function (i) { return !i.packed })
+        if (filter === 'packed') return items.filter(function (i) { return i.packed })
+        return items
+      }
+
+      function packedCount() {
+        return items.filter(function (i) { return i.packed }).length
+      }
+
+      function addItem(name) {
+        items.push({ id: Date.now() + Math.random(), name: name, packed: false })
+        save()
+        render()
+      }
+
+      function render() {
+        count.textContent = packedCount() + ' of ' + items.length + ' packed'
+        var rows = visible()
+        list.innerHTML = ''
+        if (rows.length === 0) {
+          var empty = document.createElement('li')
+          empty.className = 'empty'
+          empty.textContent = items.length === 0
+            ? 'Nothing on your list yet. Add your first item above.'
+            : filter === 'packed' ? 'Nothing packed yet. Tick an item to mark it as packed.' : 'Everything is packed.'
+          list.appendChild(empty)
+        }
+        rows.forEach(function (item) {
+          var li = document.createElement('li')
+          if (item.packed) li.className = 'packed'
+          var label = document.createElement('label')
+          var box = document.createElement('input')
+          box.type = 'checkbox'
+          box.checked = item.packed
+          box.addEventListener('change', function () {
+            item.packed = box.checked
+            save()
+            render()
+          })
+          var text = document.createElement('span')
+          text.textContent = item.name
+          label.appendChild(box)
+          label.appendChild(text)
+          var remove = document.createElement('button')
+          remove.type = 'button'
+          remove.className = 'small'
+          remove.textContent = 'Remove'
+          remove.setAttribute('aria-label', 'Remove ' + item.name)
+          remove.addEventListener('click', function () {
+            items = items.filter(function (i) { return i !== item })
+            save()
+            render()
+          })
+          li.appendChild(label)
+          li.appendChild(remove)
+          list.appendChild(li)
+        })
+        var names = { all: 'Showing everything', todo: 'Showing what is still to pack', packed: 'Showing what is packed' }
+        showing.textContent = names[filter]
+        document.querySelectorAll('[data-filter]').forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b.getAttribute('data-filter') === filter))
+        })
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault()
+        var name = input.value.trim()
+        if (!name) {
+          note.textContent = 'Type an item first.'
+          return
+        }
+        note.textContent = ''
+        addItem(name)
+        input.value = ''
+        input.focus()
+      })
+
+      document.querySelectorAll('[data-filter]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          filter = b.getAttribute('data-filter')
+          render()
+        })
+      })
+
+      document.getElementById('clear').addEventListener('click', function () {
+        items = items.filter(function (i) { return !i.packed })
+        save()
+        render()
+      })
+
+      render()
+    </script>
+  </body>
+</html>
