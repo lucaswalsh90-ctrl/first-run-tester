@@ -8,7 +8,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Badge, Button, useToast } from '@/components/ui'
-import { withFolderCheck } from '@/lib/handoff'
+import { withWorkSteps } from '@/lib/handoff'
 import { plainStep } from '@/lib/plain-step'
 import { cn } from '@/lib/utils'
 import { SEVERITY, type Issue, type Mission, type Run, type Step } from '@/lib/types'
@@ -359,8 +359,8 @@ export function IssueCard({
   const { success, error } = useToast()
   const [starting, setStarting] = useState(false)
   const sev = SEVERITY[issue.severity] ?? SEVERITY[2]
-  // Reports saved before the folder check existed get it added here.
-  const prompt = withFolderCheck(issue.fixPrompt)
+  // Reports saved before today's working steps existed get them added here.
+  const prompt = withWorkSteps(issue.fixPrompt)
 
   async function copy() {
     try {

@@ -150,6 +150,10 @@ describe('fixPrompt', () => {
     expect(prompt).toContain('stop and ask me where the code is')
     expect(prompt).toContain('Do not search the rest of the computer')
     expect(prompt.indexOf('First check that the folder')).toBeLessThan(prompt.indexOf('Make the change directly'))
+    // It works the person's own repository and terminal, and leaves shipping to them.
+    expect(prompt).toContain('2. Find the code before you change anything')
+    expect(prompt).toContain('4. Check your work from the terminal')
+    expect(prompt).toContain('5. Do not commit, push or deploy')
     expect(prompt).toContain(SAMPLE_SUMMARY.issues[0].title)
     expect(prompt).toContain('Done when:')
   })
