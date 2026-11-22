@@ -170,6 +170,12 @@ The same credit-free method was then pointed at four live apps that are known to
 
 The same click-through produced the top bar on every page, the three steps on the home screen, larger text, the replay you can step through, and History.
 
+### Control tests: apps with a known answer
+
+None of the tests above had an answer key, so they could not show whether the tester is right. [CONTROL-TESTS.md](CONTROL-TESTS.md) fixes that. It uses six apps whose state is known in advance: a small packing-list page in a working version, a version with two planted bugs and a version where Add does nothing ([public/practice](public/practice)), an address with no page behind it, and two public apps that work. The expected answers were written down first, as 15 pass-or-fail checks.
+
+All 15 passed, by the credit-free method. The tester reached the goal on the three working apps with no blocking problem, named both planted bugs, and reported the dead button and the missing page as blocking. The run also caught a false sentence in one report, about graphics on a page that has none, which is fixed and has a unit test.
+
 ### An independent review
 
 I then had a second AI agent review the code with one job: assume it's broken and prove where. It reported 15 problems, including a test that could stay on "Writing the fix list" forever, duplicate work when a run is open in two tabs, and the proxy issue above. Fourteen are fixed and one is partly fixed (the last item under Limits). Each one that can be checked without a live run has a unit test in [src/server/tester.test.ts](src/server/tester.test.ts).

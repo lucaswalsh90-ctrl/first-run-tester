@@ -315,6 +315,8 @@ problem, do not list anything that only happened because of it (a Reload button 
 the wording of that error, things that could not be seen), and never say the site is broken because
 of it. Say in the summary, in plain words, that the test browser could not draw that part, so it
 was not tested. List only problems met in the parts that did load.
+All of that applies only when the reports themselves mention such an error or a map that never
+appeared. When they do not, say nothing at all about graphics, WebGL or the test browser.
 
 The agent also reads pages quickly. A counter stuck at 0, or content that had not appeared yet, may
 be an animation it did not wait for. List that only if the reports show it stayed that way.

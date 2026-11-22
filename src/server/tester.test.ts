@@ -328,6 +328,14 @@ describe('a fix list that was cut off', () => {
     expect(request.max_tokens).toBeGreaterThanOrEqual(4000)
     expect(request.system).toContain('one or two short sentences')
   })
+
+  // A control test on a page with no graphics came back saying the test
+  // browser "could not draw" part of it. The rule is for map and 3D apps only.
+  it('keeps the graphics note out of reports that never mention graphics', () => {
+    const request = summaryRequest({ name: 'n', url: 'https://example.com', goal: 'g' }, [])
+    expect(request.system).toContain('applies only when the reports themselves mention such an error')
+    expect(request.system).toContain('say nothing at all about graphics')
+  })
 })
 
 describe('what the agent is told about its own browser', () => {
