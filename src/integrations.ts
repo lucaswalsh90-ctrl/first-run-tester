@@ -24,8 +24,9 @@ export const integrations: Record<
   string,
   { billing: 'developer' | 'user'; anonymous?: boolean }
 > = {
-  google: { billing: 'user' },
-  composio: { billing: 'user' },
+  // Only the three this app calls. The starter also listed google and composio;
+  // they were removed because this app's proxy refuses anything not listed here,
+  // and an unused entry is an open door nobody needs.
   // First-run tester: whoever runs a test pays for it from their own
   // DeepSpace credits, so strangers can't spend the owner's balance.
   apify: { billing: 'user' }, // the AI browser agent (the expensive part)
