@@ -336,6 +336,23 @@ describe('a fix list that was cut off', () => {
     expect(request.system).toContain('applies only when the reports themselves mention such an error')
     expect(request.system).toContain('say nothing at all about graphics')
   })
+
+  // Three control tests of a public shop reported a working menu as doing
+  // nothing, because the tester wrote that it "could not tell" if it opened.
+  it('does not turn "the tester could not tell" into a problem with the site', () => {
+    const request = summaryRequest({ name: 'n', url: 'https://example.com', goal: 'g' }, [])
+    expect(request.system).toContain("agent's own uncertainty and not a fault in the website")
+    expect(request.system).toContain('looked again or tried again')
+  })
+
+  it('tells every tester to read the page again before saying a click did nothing', () => {
+    const [first, main] = planFullTest('https://example.com/', 'do a thing')
+    const retest = planRetest('https://example.com/', 'do a thing', { title: 't', check: 'c' })
+    for (const plan of [first, main, retest]) {
+      expect(plan.task).toContain('read the whole page once more before you say so')
+      expect(plan.task).toContain('do not call it broken')
+    }
+  })
 })
 
 describe('what the agent is told about its own browser', () => {

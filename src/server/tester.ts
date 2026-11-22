@@ -134,10 +134,17 @@ const GRAPHICS_NOTE =
  * The agent reads a page the moment it loads. On a test of a real app it saw
  * counters at 0 that were only halfway through counting up. Told to look once
  * more, it stops reporting an animation as broken data.
+ *
+ * The same goes for clicks. In control tests on a public shop, three testers
+ * clicked a menu, did not notice it open, and wrote that they "could not tell"
+ * whether it worked; the fix list then called the menu broken. It works.
  */
 const PATIENCE_NOTE =
   ' If a page looks empty, or its numbers read 0, right after it loads, it may still be loading or animating: ' +
-  'look once more before you call it broken.'
+  'look once more before you call it broken.' +
+  ' If a click seems to change nothing, read the whole page once more before you say so: a menu, panel or ' +
+  'message may have opened without the page moving. If you still cannot tell whether it worked, say that you ' +
+  'could not tell, and do not call it broken.'
 
 /** A full test is two missions that run at the same time, each in a fresh browser. */
 export function planFullTest(url: string, goal: string, hasLogin = false): MissionPlan[] {
@@ -320,6 +327,11 @@ appeared. When they do not, say nothing at all about graphics, WebGL or the test
 
 The agent also reads pages quickly. A counter stuck at 0, or content that had not appeared yet, may
 be an animation it did not wait for. List that only if the reports show it stayed that way.
+
+When the agent says it could not tell, or could not confirm, whether something worked, that is the
+agent's own uncertainty and not a fault in the website. Do not list it as a problem. Say that a
+button, link or menu does nothing only when the reports show the page stayed the same after the
+agent looked again or tried again, or when it stopped the agent from reaching its goal.
 
 Reply with JSON only, no prose, in exactly this shape:
 {"summary": "two sentences on how the first run went",
