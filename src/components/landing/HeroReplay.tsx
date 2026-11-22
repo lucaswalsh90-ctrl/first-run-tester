@@ -20,6 +20,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { HESITATION_BELOW, HesitationTrace } from '../RunView'
+import { plainStep } from '../../lib/plain-step'
 import { cn } from '../../lib/utils'
 import { SAMPLE_MISSIONS, SAMPLE_SITE, SAMPLE_SUMMARY } from '../../server/sample-run'
 
@@ -284,7 +285,7 @@ export function HeroReplay() {
             <p className={cn('font-mono text-sm', hesitant ? 'font-medium text-primary' : 'text-muted-foreground')}>
               Step {current.step} of {LAST} · {pct}% sure{hesitant ? ' · hesitated here' : ''}
             </p>
-            <p className="mt-1 line-clamp-2 text-foreground">{current.description}</p>
+            <p className="mt-1 line-clamp-2 text-foreground">{plainStep(current.description)}</p>
           </>
         ) : (
           <>

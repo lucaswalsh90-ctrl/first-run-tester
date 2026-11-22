@@ -156,7 +156,7 @@ export default function RunPage() {
                       n={n + 1}
                       issue={issue}
                       onRetest={isSample ? undefined : () => startRetest(issue.recordId, run.data.siteId)}
-                      retestHint={isSample ? 'Add your own app to use Retest.' : undefined}
+                      retestHint={isSample ? 'On your own app, a Retest button here checks this one problem again.' : undefined}
                     />
                   ))}
                 </ol>

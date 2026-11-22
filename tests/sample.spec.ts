@@ -16,6 +16,8 @@ test.describe('Public sample', () => {
     })
 
     await page.goto('/')
+    // Cost is stated next to the buttons, where the decision is made.
+    await expect(page.getByText('The sample is free.')).toBeVisible()
     await page.getByRole('link', { name: /see a sample report/i }).click()
     await expect(page).toHaveURL(/\/sample$/)
 
@@ -46,9 +48,14 @@ test.describe('Public sample', () => {
     await expect(page.getByText('hesitated here').first()).toBeVisible()
     await expect(page.getByText('Clicking through…')).toHaveCount(0)
 
-    // Retest is for your own app, so it is off here and says why.
-    await expect(issues.first().getByRole('button', { name: /retest/i })).toBeDisabled()
-    await expect(issues.first().getByText('Retest works on your own app.')).toBeVisible()
+    // Retest is for your own app. A greyed-out button looked broken to a newcomer,
+    // so there is no button here, only a line saying where it works.
+    await expect(issues.first().getByRole('button', { name: /retest/i })).toHaveCount(0)
+    await expect(issues.first().getByText('On your own app, a Retest button here checks this one problem again.')).toBeVisible()
+
+    // Steps are shown in plain English, not in the browser agent's own shorthand.
+    await expect(page.getByText('Ticked the checkbox "Toggle Todo"')).toBeVisible()
+    await expect(page.getByText('one entry per Enter')).toHaveCount(0)
 
     expect(serverCalls).toEqual([])
     expect(errors).toEqual([])

@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Badge, Button, useToast } from '@/components/ui'
 import { withFolderCheck } from '@/lib/handoff'
+import { plainStep } from '@/lib/plain-step'
 import { cn } from '@/lib/utils'
 import { SEVERITY, type Issue, type Mission, type Run, type Step } from '@/lib/types'
 
@@ -222,7 +223,12 @@ export function MissionCard({ mission, startedAt, sample }: { mission: Mission; 
       ) : (
         <>
           {realSteps(steps).length > 0 && (
-            <div className="mt-5 flex items-end justify-between gap-3">
+            <p className="mt-5 text-sm text-muted-foreground">
+              How sure it was at each step. A shorter bar means less sure.
+            </p>
+          )}
+          {realSteps(steps).length > 0 && (
+            <div className="mt-2 flex items-end justify-between gap-3">
               <HesitationTrace steps={steps} active={focus.active} onActive={focus.point} />
               <button
                 type="button"
@@ -311,7 +317,7 @@ export function StepRow({
       <span className="mt-0.5 w-5 shrink-0 text-right font-mono text-sm text-muted-foreground">{step.step}</span>
       <div className="min-w-0 flex-1">
         <p className={finished ? 'text-muted-foreground' : 'text-foreground'}>
-          {finished ? 'Stopped and wrote its report.' : step.description}
+          {finished ? 'Stopped and wrote its report.' : plainStep(step.description)}
         </p>
         {pct != null && (
           <div className="mt-1 flex items-center gap-2">
@@ -417,15 +423,14 @@ export function IssueCard({
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={copy}>{example ? 'Copy example prompt' : 'Copy fix prompt'}</Button>
-            <Button
-              variant="outline"
-              loading={starting}
-              disabled={!onRetest || issue.status === 'retesting'}
-              onClick={retest}
-            >
-              {issue.status === 'retesting' ? 'Retesting…' : 'I fixed it: retest'}
-            </Button>
-            {!onRetest && retestHint && <span className="text-sm text-muted-foreground">{retestHint}</span>}
+            {onRetest ? (
+              <Button variant="outline" loading={starting} disabled={issue.status === 'retesting'} onClick={retest}>
+                {issue.status === 'retesting' ? 'Retesting…' : 'I fixed it: retest'}
+              </Button>
+            ) : (
+              // A greyed-out button reads as broken, so say what the button is and where it works.
+              retestHint && <span className="text-muted-foreground">{retestHint}</span>
+            )}
           </div>
         </div>
       </div>

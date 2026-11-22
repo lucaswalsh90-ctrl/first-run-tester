@@ -148,6 +148,14 @@ The same person copied a fix prompt from the sample report into a coding agent t
 
 Both were checked the way the problem was found: each prompt was pasted, unchanged, into a fresh agent sitting in the wrong folder.
 
+### Testing without the paid browser
+
+When credits ran out, the app was tested another way. Two fresh agents, each in a clean browser with no memory of the app, were given the exact instructions the app gives its paid browser agent. What they reported went through the app's own fix-list code.
+
+That found a bug a paid test would have hit: the fix-list reply was capped at 2,000 tokens, the model's thinking counts against that cap, and a list of six problems was cut off mid-sentence. The reader then found no complete JSON and failed, and the retry sent the same request. The cap is now 4,000, each field is kept short, and a cut-off reply keeps every problem that was written out in full ([src/server/tester.ts](src/server/tester.ts), `salvageSummary`).
+
+It also gave a fresh-eyes fix list for the new design. From it: the sample report became a button, cost moved next to the buttons, steps are shown in plain English ([src/lib/plain-step.ts](src/lib/plain-step.ts)), the bars got a key, and the greyed-out Retest button on the sample became a sentence. This stand-in is not the product: it used the app's instructions and code, but a local browser in place of the cloud one.
+
 The same click-through produced the top bar on every page, the three steps on the home screen, larger text, the replay you can step through, and History.
 
 ### An independent review

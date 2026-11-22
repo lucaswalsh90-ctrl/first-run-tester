@@ -47,7 +47,7 @@ const HOW = [
 const FACTS = [
   ['Why not your coding agent', 'It built the app, so it knows where things are. This one starts cold.'],
   ['Your own app', 'A free DeepSpace account. Sign in with Google or GitHub.'],
-  ['Cost', '60 to 90 credits a test (60 to 90 cents). 500 a month are free.'],
+  ['What a credit is', 'DeepSpace\'s currency. 100 credits is one US dollar.'],
   ['Sign-in walls', "Give it a throwaway test login. It can't use Google sign-in."],
   ['Maps and 3D', "The test browser can't draw them, and the report says so."],
 ]
@@ -75,7 +75,7 @@ export default function Landing() {
         <main className="mx-auto max-w-6xl px-6">
           <section className="grid items-start gap-12 pb-20 pt-10 lg:grid-cols-[1fr_minmax(0,32rem)] lg:pt-14">
             <div className="lg:pt-6">
-              <p className="font-mono text-sm uppercase tracking-wider text-primary">Fresh eyes for your app</p>
+              <p className="font-mono text-sm uppercase tracking-wider text-primary">For anyone who just built an app</p>
               <h1 className="mt-4 text-5xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-6xl">
                 Watch a stranger use your app.
               </h1>
@@ -103,12 +103,14 @@ export default function Landing() {
                   </button>
                 </div>
               </form>
-              <Link
-                to="/sample"
-                className="mt-4 inline-block text-base font-medium text-foreground underline underline-offset-4"
-              >
-                See a sample report (no sign-in)
-              </Link>
+              <div className="mt-3 flex max-w-md flex-wrap items-center gap-x-4 gap-y-2">
+                <Link to="/sample" className={`${BUTTON} border border-border bg-card text-foreground`}>
+                  See a sample report (no sign-in)
+                </Link>
+              </div>
+              <p className="mt-4 max-w-md text-muted-foreground">
+                The sample is free. Your own app costs 60 to 90 credits a test, and a free account has 500 a month.
+              </p>
             </div>
             <HeroReplay />
           </section>

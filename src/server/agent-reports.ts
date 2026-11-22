@@ -10,7 +10,7 @@
  * reports and fix prompts; starting a test or a retest stays a person's click.
  */
 
-import { GRAPHICS_LIMIT, setAsideTestLimits } from '../lib/test-limit'
+import { GRAPHICS_LIMIT, countedIssues, setAsideTestLimits } from '../lib/test-limit'
 
 type Row<T> = { recordId: string; data: T; createdAt?: string }
 
@@ -73,7 +73,15 @@ function countByStatus(issues: Row<Issue>[]) {
 }
 
 /** One line per app: its latest finished test and how many problems are still open. */
-export function listReports(sites: Row<Site>[], runs: Row<Run>[], issues: Row<Issue>[], reportUrl: (runId: string) => string) {
+export function listReports(
+  sites: Row<Site>[],
+  runs: Row<Run>[],
+  allIssues: Row<Issue>[],
+  reportUrl: (runId: string) => string,
+  sessions: Row<Session>[] = [],
+) {
+  // The same count the report shows: findings the test browser caused are left out.
+  const issues = countedIssues(allIssues, sessions)
   return sites.map((site) => {
     const latest = finishedTests(runs, site.recordId)[0]
     return {

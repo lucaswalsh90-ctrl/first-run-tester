@@ -47,6 +47,7 @@ export function spendCapUsd(maxSteps: number): number {
 
 /** The model that writes the fix list: the cheapest one that does the job. */
 export const SUMMARY_MODEL = 'claude-haiku-5-5'
+export const SUMMARY_MAX_TOKENS = 4000
 
 export interface MissionPlan {
   title: string
@@ -308,7 +309,7 @@ Reply with JSON only, no prose, in exactly this shape:
    "where": "the page or screen and the element involved",
    "change": "the smallest change that would fix it",
    "check": "how someone would confirm the fix by using the site"}]}
-Return at most 6 issues.`
+Return at most 6 issues. Keep every field to one or two short sentences.`
 
 export function summaryRequest(
   site: { name: string; url: string; goal: string },
@@ -331,7 +332,9 @@ ${m.confusing || '(nothing listed)'}`
 
   return {
     model: SUMMARY_MODEL,
-    max_tokens: 2000,
+    // Room for six problems plus the model's own thinking, which counts
+    // against this limit. At 2,000 a longer list was cut off mid-sentence.
+    max_tokens: SUMMARY_MAX_TOKENS,
     temperature: 0,
     system: SUMMARY_SYSTEM,
     messages: [
@@ -367,12 +370,40 @@ export function firstJsonObject(raw: string): string | null {
 }
 
 /** Pulls the JSON reply out of an anthropic/chat-completion response. */
+/**
+ * What can be saved from a reply that was cut off before its JSON closed:
+ * the summary, and every problem that was written out in full. The sessions
+ * behind a fix list are already paid for, so a list missing its last item is
+ * far better than no list.
+ */
+export function salvageSummary(raw: string): { summary?: string; issues: unknown[] } | null {
+  const at = raw.indexOf('"issues"')
+  const open = at < 0 ? -1 : raw.indexOf('[', at)
+  if (open < 0) return null
+  const issues: unknown[] = []
+  let rest = raw.slice(open + 1)
+  for (;;) {
+    const next = firstJsonObject(rest)
+    if (!next) break
+    try {
+      issues.push(JSON.parse(next))
+    } catch {
+      break
+    }
+    rest = rest.slice(rest.indexOf(next) + next.length)
+  }
+  const summary = raw.slice(0, at).match(/"summary"\s*:\s*("(?:[^"\\]|\\.)*")/)
+  if (issues.length === 0 && !summary) return null
+  return { summary: summary ? (JSON.parse(summary[1]) as string) : undefined, issues }
+}
+
 export function readSummary(response: unknown): { summary: string; issues: DraftIssue[] } {
   const r = response as { content?: Array<{ type?: string; text?: string }>; text?: string }
   const raw = r?.content?.find((c) => c.type === 'text')?.text ?? r?.text ?? ''
   const json = firstJsonObject(raw)
-  if (!json) throw new Error('The fix list came back without JSON')
-  const parsed = JSON.parse(json) as { summary?: string; issues?: unknown }
+  // No complete JSON usually means the reply was cut off. Keep what finished.
+  const parsed = (json ? JSON.parse(json) : salvageSummary(raw)) as { summary?: string; issues?: unknown } | null
+  if (!parsed) throw new Error('The fix list came back without JSON')
   const list = Array.isArray(parsed.issues) ? parsed.issues : []
   const issues = list
     .filter((value): value is Record<string, unknown> => !!value && typeof value === 'object')

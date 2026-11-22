@@ -132,8 +132,8 @@ export function buildTools(executor: ToolExecutor, context?: AgentToolContext<En
       inputSchema: buildInputSchema(def),
       execute: async (params: Record<string, unknown>) => {
         const { sites, runs, issues } = await load()
-        if (def.name === 'first_run_reports') return { apps: listReports(sites, runs, issues, reportUrl) }
         const sessions = await readAll<Session>(executor, 'missions')
+        if (def.name === 'first_run_reports') return { apps: listReports(sites, runs, issues, reportUrl, sessions) }
         return fixList(
           sites,
           runs,

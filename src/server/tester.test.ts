@@ -14,6 +14,7 @@ import {
   planRetest,
   readBrowserAgentRun,
   readSummary,
+  salvageSummary,
   readTestLogin,
   spendCapUsd,
   summaryRequest,
@@ -292,5 +293,35 @@ describe('test login', () => {
     expect(browserAgentRequest('https://my-app.app.space', without).input).not.toHaveProperty('credentials')
     expect(withLogin.maxSteps).toBeGreaterThan(without.maxSteps)
     expect(without.task).toContain('newcomer@example.com')
+  })
+})
+
+// A real reply was cut off at the token limit halfway through its fifth problem
+// (found by running stand-in sessions through this code before a paid test did).
+describe('a fix list that was cut off', () => {
+  const reply = (text: string) => ({ content: [{ type: 'text', text }] })
+  const issue = (n: number) => `{"severity": 2, "title": "Problem ${n}", "detail": "Detail {with braces} ${n}.", "where": "w", "change": "c", "check": "k"}`
+  const cutOff = `{"summary": "It went \\"mostly\\" fine.", "issues": [${issue(1)}, ${issue(2)}, {"severity": 2, "title": "Problem 3", "detail": "The replay sits well bel`
+
+  it('keeps the summary and every problem that was written out in full', () => {
+    const out = readSummary(reply(cutOff))
+    expect(out.summary).toBe('It went "mostly" fine.')
+    expect(out.issues.map((i) => i.title)).toEqual(['Problem 1', 'Problem 2'])
+    expect(out.issues[0].detail).toBe('Detail {with braces} 1.')
+  })
+
+  it('keeps a summary even when no problem finished', () => {
+    expect(readSummary(reply('{"summary": "Short.", "issues": [{"severity": 1, "title": "Cut'))).toEqual({ summary: 'Short.', issues: [] })
+  })
+
+  it('still throws when there is nothing to save', () => {
+    expect(salvageSummary('Sorry, I cannot help with that.')).toBeNull()
+    expect(() => readSummary(reply('{"summ'))).toThrow(/without JSON/)
+  })
+
+  it('asks for enough room that six problems fit', () => {
+    const request = summaryRequest({ name: 'n', url: 'https://example.com', goal: 'g' }, [])
+    expect(request.max_tokens).toBeGreaterThanOrEqual(4000)
+    expect(request.system).toContain('one or two short sentences')
   })
 })

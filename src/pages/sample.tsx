@@ -81,7 +81,7 @@ export default function SamplePage() {
                 n={n + 1}
                 example
                 issue={{ ...issue, fixPrompt: examplePrompt(issue), status: 'open' }}
-                retestHint="Retest works on your own app."
+                retestHint="On your own app, a Retest button here checks this one problem again."
               />
             ))}
           </ol>
