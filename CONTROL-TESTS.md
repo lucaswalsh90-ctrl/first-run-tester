@@ -76,18 +76,26 @@ The practice pages keep their list only for the tab you are in, so every test st
 
 ## Results
 
-Run on 22 November 2026, one test per control. All 15 checks passed.
+Run on 22 November 2026: four tests of each control, 24 tests in all. 59 of the 60 checks passed.
 
-| Control | Goal reached? | "Blocks newcomers" problems | Checks |
-| --- | --- | --- | --- |
-| A, works | Yes | None | 3 of 3 |
-| B, two small bugs | No | Packed filter shows the unpacked items | 3 of 3 |
-| C, broken | No | Adding an item does nothing | 2 of 2 |
-| D, missing | No | Address returns a 404 error | 3 of 3 |
-| TodoMVC, works | Yes | None | 2 of 2 |
-| Toolshop, works | Yes | None | 2 of 2 |
+| Control | Tests | Goal reported correctly | "Blocks newcomers" problems | Checks |
+| --- | --- | --- | --- | --- |
+| A, works | 4 | 4 of 4 reached | None in any test | 12 of 12 |
+| B, two small bugs | 4 | 4 of 4 not reached | The Packed filter, every time | 11 of 12 |
+| C, broken | 4 | 4 of 4 not reached | "Adding an item does nothing", every time | 8 of 8 |
+| D, missing | 4 | 4 of 4 not reached | The 404 error, every time | 12 of 12 |
+| TodoMVC, works | 4 | 4 of 4 reached | None in any test | 8 of 8 |
+| Toolshop, works | 4 | 4 of 4 reached | None in any test | 8 of 8 |
 
-On B the fix list named both planted bugs: the filter as "Blocks newcomers" and the counter as "Slows newcomers".
+What that adds up to:
+
+- **Planted bugs found: 8 of 8.** Both bugs on B were in the fix list in all four tests.
+- **Broken apps caught: 8 of 8.** C and D were reported as failing every time, with the real cause as the top problem.
+- **False alarms that block: 0 of 12.** No test of a working app produced a "Blocks newcomers" problem.
+
+### The one failed check
+
+In the third test of B, the counter bug was listed under the title "Ticking an item does not register as packed" and marked "Blocks newcomers". Ticking does work on that page. The detail and the suggested fix both pointed at the counter, so the bug was found, but the title blamed the wrong thing and the label was one step too severe. That fails check 6.
 
 ### How these were run
 
@@ -97,11 +105,13 @@ So these results cover the instructions the app writes and everything it does wi
 
 ### What the controls turned up
 
-- **A false sentence, now fixed.** The first report on B said the test browser "could not draw any graphics-dependent parts". That page has no graphics. The rule for map and 3D apps was being applied to every app. The rule now says it applies only when the tester's notes mention such an error. After the change, none of the six reports mention graphics, and a saved report from a map app still gets the note.
-- **Working apps still get a list.** A, TodoMVC and Toolshop each came back with three to six smaller items, such as "no confirmation after adding an item". None was marked "Blocks newcomers". Read the top label first: a list with no blocking problem means the app works.
-- **Three findings came from the stand-in method.** The stand-in ran both sessions in one browser, one after the other, so "the list is lost on reload" (B), "leftover items from an earlier visit" (TodoMVC) and "the Testing Guide panel stays open" (Toolshop) describe that setup. The paid browser starts each session fresh.
-- **One finding is unchecked.** On Toolshop the tester said the Categories menu gave no visible result. Nobody has confirmed that by hand.
+- **A false sentence, now fixed.** The first report on B said the test browser "could not draw any graphics-dependent parts". That page has no graphics. The rule for map and 3D apps was being applied to every app. The rule now says it applies only when the tester's notes mention such an error. In the 24 reports written since the change, none mentions graphics, and a saved report from a map app still gets the note.
+- **One smaller finding was wrong, three times.** Three of the four Toolshop tests said the Categories menu does nothing when clicked. Checked by hand, it opens a list of five categories. It was never marked as blocking, but it is a false finding, and it repeated.
+- **Working apps still get a list.** A, TodoMVC and Toolshop came back with two to six smaller items each time. On A the same two came up in all four tests: no confirmation after adding an item, and a "Clear packed items" button with no explanation. Those are fair comments on the page. Read the top label first: a list with no blocking problem means the app works.
+- **Some findings came from the stand-in method.** The stand-in ran both sessions in one browser, one after the other, so "the list is lost on reload" (B) and "a leftover to-do from an earlier visit" (TodoMVC) describe that setup. The paid browser starts each session fresh.
 
 ### Limits of this score
 
-One test per control is a pass or fail on each, not a rate. Running each control several times would show how often the tester gets it right.
+- Four tests per control is enough to see that the result repeats. It is too few to give a percentage anyone should quote.
+- The six controls are small or simple apps. A long sign-up flow, a dashboard or an app behind a login would be a harder test.
+- The answer key covers blocking problems and planted bugs. It does not judge whether each smaller item is worth fixing.
