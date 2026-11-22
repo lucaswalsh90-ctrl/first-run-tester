@@ -1,6 +1,6 @@
 /** Unit tests for spotting the test browser's own limits. */
 import { describe, expect, it } from 'vitest'
-import { blamesGraphicsLimit, countedIssues, hitGraphicsLimit, setAsideTestLimits } from './test-limit'
+import { blamesGraphicsLimit, countedIssues, hitGraphicsLimit, hitSignInWall, setAsideTestLimits } from './test-limit'
 
 // The wording a real session used on a map app (first real test of someone else's app).
 const mapSession = {
@@ -79,5 +79,36 @@ describe('countedIssues', () => {
 
   it('counts everything when no sessions are loaded yet', () => {
     expect(countedIssues(issues, [])).toHaveLength(3)
+  })
+})
+
+// Wording from stand-in sessions on two real DeepSpace apps: one behind a sign-in wall, one that needs no login.
+describe('hitSignInWall', () => {
+  const walled = {
+    succeeded: false,
+    report: "2. Clicked the 'Check your copy' link. Went to /check, which asked me to sign in.",
+    confusing: "There was no way to try one claim without an account.",
+  }
+  const open = {
+    succeeded: true,
+    report: 'It opened the story straight away with no login.',
+    confusing: 'No account was needed, which is good, but the site never says so until a small footer line.',
+  }
+
+  it('spots a session that was stopped by sign-in', () => {
+    expect(hitSignInWall([open, walled])).toBe(true)
+    expect(hitSignInWall([{ succeeded: 0, report: 'The page said: Sign in to continue.' }])).toBe(true)
+  })
+
+  it('is false when a site only mentions that no login is needed', () => {
+    expect(hitSignInWall([open])).toBe(false)
+  })
+
+  it('is false when the session reached its goal, even if it signed in on the way', () => {
+    expect(hitSignInWall([{ succeeded: true, report: 'The site asked me to sign in, the saved login worked, and I created a task.' }])).toBe(false)
+  })
+
+  it('is false for a session that failed for another reason', () => {
+    expect(hitSignInWall([{ succeeded: false, report: 'The Completed filter was hard to find and I ran out of steps.' }])).toBe(false)
   })
 })

@@ -325,3 +325,14 @@ describe('a fix list that was cut off', () => {
     expect(request.system).toContain('one or two short sentences')
   })
 })
+
+describe('what the agent is told about its own browser', () => {
+  it('every mission says to look again before calling a loading page broken', () => {
+    const [first, main] = planFullTest('https://example.com/', 'do a thing')
+    const retest = planRetest('https://example.com/', 'do a thing', { title: 't', check: 'c' })
+    for (const plan of [first, main, retest]) {
+      expect(plan.task).toContain('look once more before you call it broken')
+      expect(plan.task).toContain('no graphics card')
+    }
+  })
+})

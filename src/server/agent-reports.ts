@@ -10,12 +10,12 @@
  * reports and fix prompts; starting a test or a retest stays a person's click.
  */
 
-import { GRAPHICS_LIMIT, countedIssues, setAsideTestLimits } from '../lib/test-limit'
+import { GRAPHICS_LIMIT, SIGN_IN_WALL_NOTE, countedIssues, hitSignInWall, setAsideTestLimits } from '../lib/test-limit'
 
 type Row<T> = { recordId: string; data: T; createdAt?: string }
 
 /** The parts of a saved browser session needed to tell whether the test browser hit its own limit. */
-export interface Session { runId: string; steps?: unknown; report?: string; confusing?: string }
+export interface Session { runId: string; steps?: unknown; report?: string; confusing?: string; succeeded?: unknown }
 
 export interface Site { name: string; url: string; goal: string }
 export interface Run {
@@ -24,6 +24,7 @@ export interface Run {
   status: string
   summary?: string
   sample?: unknown
+  usedLogin?: unknown
   startedAt: number
 }
 export interface Issue {
@@ -144,6 +145,7 @@ export function fixList(
     sessions.filter((m) => m.data.runId === run!.recordId).map((m) => m.data),
   )
   const all = checked.real
+  const walled = !run.data.usedLogin && hitSignInWall(sessions.filter((m) => m.data.runId === run!.recordId).map((m) => m.data))
   const wanted = ask.includeFixed ? all : all.filter((i) => i.data.status !== 'fixed')
 
   return {
@@ -163,6 +165,7 @@ export function fixList(
             `${checked.setAside.length} finding(s) caused by that were left out. Do not change the app's maps or graphics because of this test.`,
         }
       : {}),
+    ...(walled ? { signedOutOnly: `${SIGN_IN_WALL_NOTE.title}. ${SIGN_IN_WALL_NOTE.body}` } : {}),
     issues: wanted.map((i, n) => ({
       number: n + 1,
       severity: SEVERITY_WORDS[i.data.severity] ?? 'slows newcomers',

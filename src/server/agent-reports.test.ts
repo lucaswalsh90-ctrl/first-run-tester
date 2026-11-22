@@ -73,3 +73,22 @@ describe('fixList', () => {
     expect(result.howToUseThis).toContain('cannot start a retest')
   })
 })
+
+describe('what an agent is told about the test itself', () => {
+  const walled = [{ recordId: 's1', data: { runId: 'new', succeeded: false, report: 'Went to /check, which asked me to sign in.' } }]
+  const map = [{ recordId: 's2', data: { runId: 'new', succeeded: false, report: 'The page showed a WebGL context creation failure instead of a map.' } }]
+
+  it('says when the test only covers what a signed-out visitor can see', () => {
+    const result = fixList(sites, runs, issues, { runId: 'new' }, url, walled)
+    expect(result).toMatchObject({ found: true, signedOutOnly: expect.stringContaining('stopped at a sign-in page') })
+  })
+
+  it('says nothing about sign-in when the sessions were not stopped by it', () => {
+    expect(fixList(sites, runs, issues, { runId: 'new' }, url, [])).not.toHaveProperty('signedOutOnly')
+    expect(fixList(sites, runs, issues, { runId: 'new' }, url, map)).not.toHaveProperty('signedOutOnly')
+  })
+
+  it('says when the test browser could not draw part of the app', () => {
+    expect(fixList(sites, runs, issues, { runId: 'new' }, url, map)).toHaveProperty('testBrowserLimit')
+  })
+})

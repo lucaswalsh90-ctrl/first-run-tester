@@ -16,7 +16,7 @@ import { AgentHandoff } from '@/components/AgentHandoff'
 import { Button } from '@/components/ui'
 import { Elapsed, IssueCard, MissionCard, RunStatus } from '@/components/RunView'
 import { TestLoginBox } from '@/components/TestLoginBox'
-import { GRAPHICS_LIMIT, setAsideTestLimits } from '@/lib/test-limit'
+import { GRAPHICS_LIMIT, SIGN_IN_WALL_NOTE, hitSignInWall, setAsideTestLimits } from '@/lib/test-limit'
 import { completeTestLogin, useTestLogin } from '@/lib/test-login'
 import type { Issue, Mission, Run, Site } from '@/lib/types'
 
@@ -85,6 +85,8 @@ export default function RunPage() {
   // blame that are set aside, so they are never ranked as this app's problems.
   const live = issues.map((i) => ({ ...withLiveRetestStatus(i.data, i.recordId, retests), recordId: i.recordId }))
   const checked = setAsideTestLimits(live, missions.map((m) => m.data))
+  // Stopped at a sign-in page with no test login given? Say what to do about it.
+  const walled = !usedLogin && !isSample && hitSignInWall(missions.map((m) => m.data))
 
   const sessions = (
     <section className="mt-12">
@@ -135,6 +137,15 @@ export default function RunPage() {
                 <h3 className="text-lg font-semibold text-foreground">{GRAPHICS_LIMIT.title}</h3>
                 <p className="mt-1 text-foreground">{GRAPHICS_LIMIT.body}</p>
                 <p className="mt-2 text-muted-foreground">{GRAPHICS_LIMIT.next}</p>
+              </div>
+            )}
+            {walled && (
+              <div className="mb-4 rounded-lg border border-border bg-card p-5">
+                <h3 className="text-lg font-semibold text-foreground">{SIGN_IN_WALL_NOTE.title}</h3>
+                <p className="mt-1 text-foreground">{SIGN_IN_WALL_NOTE.body}</p>
+                <Link to="/home" className="mt-3 inline-block font-medium text-foreground underline underline-offset-4">
+                  Add a test login on Your apps
+                </Link>
               </div>
             )}
             {checked.real.length === 0 ? (

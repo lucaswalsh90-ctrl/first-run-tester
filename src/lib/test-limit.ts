@@ -20,7 +20,7 @@
  * Pure functions, used by the server, the report page and the agent door.
  */
 
-type Session = { steps?: unknown; report?: string; confusing?: string }
+type Session = { steps?: unknown; report?: string; confusing?: string; succeeded?: unknown }
 
 /**
  * A graphics failure, in the words a session uses for it. "WebGL" alone is not
@@ -73,6 +73,39 @@ export function countedIssues<T extends { recordId: string; data: { runId: strin
     ),
   )
   return issues.filter((i) => !(limitedRuns.has(i.data.runId) && blamesGraphicsLimit(i.data)))
+}
+
+/**
+ * A sign-in wall, in the words a session uses for being stopped by one.
+ * "No login needed" must not match, so it takes a sign-in word next to a
+ * blocking word.
+ */
+const SIGN_IN = "sign(?:ed|ing)?[- ]?in|log(?:ged|ging)?[- ]?in|an account|create account"
+const BLOCKED = "to continue|required|only available|wall|blocked|stopped|could not|couldn't|cannot|can't|asked me|needs"
+const SIGN_IN_WALL = new RegExp(
+  `(${SIGN_IN})[^.]{0,100}(${BLOCKED})|(${BLOCKED})[^.]{0,100}(${SIGN_IN})|without (an account|signing in)`,
+  'i',
+)
+
+/**
+ * Was a session stopped at a sign-in page? Only sessions that did not reach
+ * their goal count, so a site that merely mentions sign-in is left alone.
+ *
+ * This is not set aside like the graphics limit: a wall nobody warned you
+ * about is a fair finding. But the builder should be told the next step,
+ * which is to give the tester a test login and run again.
+ */
+export function hitSignInWall(sessions: Session[]): boolean {
+  return sessions.some(
+    (s) => !s.succeeded && SIGN_IN_WALL.test(JSON.stringify([s.steps ?? '', s.report ?? '', s.confusing ?? ''])),
+  )
+}
+
+export const SIGN_IN_WALL_NOTE = {
+  title: 'The newcomer was stopped at a sign-in page',
+  body:
+    'So this test only covers what a signed-out visitor can see. To test what is behind the sign-in, give the ' +
+    'tester a throwaway email and password for your app (the "Test login" box under the app) and run it again.',
 }
 
 /** The words shown on a report (and sent to a coding agent) when the limit was hit. */

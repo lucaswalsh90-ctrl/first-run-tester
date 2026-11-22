@@ -128,6 +128,15 @@ const GRAPHICS_NOTE =
   'retry, say once that this part could not be drawn here, and carry on with whatever else you can reach. ' +
   'If nothing else can be reached, stop.'
 
+/**
+ * The agent reads a page the moment it loads. On a test of a real app it saw
+ * counters at 0 that were only halfway through counting up. Told to look once
+ * more, it stops reporting an animation as broken data.
+ */
+const PATIENCE_NOTE =
+  ' If a page looks empty, or its numbers read 0, right after it loads, it may still be loading or animating: ' +
+  'look once more before you call it broken.'
+
 /** A full test is two missions that run at the same time, each in a fresh browser. */
 export function planFullTest(url: string, goal: string, hasLogin = false): MissionPlan[] {
   return [
@@ -139,6 +148,7 @@ export function planFullTest(url: string, goal: string, hasLogin = false): Missi
         'Do not create an account. ' +
         STAY_ON_SITE +
         GRAPHICS_NOTE +
+        PATIENCE_NOTE +
         ' After each action, say in one plain sentence what you did and what you learned. ' +
         'Then list anything that was unclear, hidden, slow to find or confusing for a newcomer.',
       maxSteps: 6,
@@ -152,6 +162,7 @@ export function planFullTest(url: string, goal: string, hasLogin = false): Missi
         (hasLogin ? USE_TEST_LOGIN : SIGN_UP_INSTEAD) +
         STAY_ON_SITE +
         GRAPHICS_NOTE +
+        PATIENCE_NOTE +
         ' After each action, say in one plain sentence what you did and whether it worked. ' +
         'Then list anything that was unclear, hidden, slow to find or confusing, and say whether you reached the goal.',
       maxSteps: LIMITS.maxStepsPerMission + (hasLogin ? EXTRA_STEPS_FOR_LOGIN : 0),
@@ -176,6 +187,7 @@ export function planRetest(
       (hasLogin ? USE_TEST_LOGIN : '') +
       STAY_ON_SITE +
       GRAPHICS_NOTE +
+        PATIENCE_NOTE +
       ' Describe each action in one plain sentence. ' +
       'Finally, answer fixed = true only if a newcomer would no longer run into the problem. ' +
       'If the graphics limit stopped you from checking, leave fixed out of your answer.',
@@ -301,6 +313,9 @@ problem, do not list anything that only happened because of it (a Reload button 
 the wording of that error, things that could not be seen), and never say the site is broken because
 of it. Say in the summary, in plain words, that the test browser could not draw that part, so it
 was not tested. List only problems met in the parts that did load.
+
+The agent also reads pages quickly. A counter stuck at 0, or content that had not appeared yet, may
+be an animation it did not wait for. List that only if the reports show it stayed that way.
 
 Reply with JSON only, no prose, in exactly this shape:
 {"summary": "two sentences on how the first run went",

@@ -158,6 +158,14 @@ That found a bug a paid test would have hit: the fix-list reply was capped at 2,
 
 It also gave a fresh-eyes fix list for the new design. From it: the sample report became a button, cost moved next to the buttons, steps are shown in plain English ([src/lib/plain-step.ts](src/lib/plain-step.ts)), the bars got a key, and the greyed-out Retest button on the sample became a sentence. This stand-in is not the product: it used the app's instructions and code, but a local browser in place of the cloud one.
 
+### Four more apps
+
+The same credit-free method was then pointed at four live apps that are known to work: three built on DeepSpace (GitHub Wrapped, ClaimCheck, Taskspace) and Hacker News. All four went through the fix-list code cleanly, with five or six problems each.
+
+- Two of the DeepSpace apps stop a newcomer at sign-in, so the test never reached the product. The report listed the wall as a problem but did not say what to do next. It now shows a notice that points to the test login ([src/lib/test-limit.ts](src/lib/test-limit.ts), `hitSignInWall`). The check was run against every session saved in the account, real and stand-in, with no false alarms.
+- On one app the browser read counters at 0 before their count-up animation finished. The tester is now told to look once more before calling a loading page broken.
+- One finding repeated on three DeepSpace apps, this one included: the shared sign-in box is titled "Sign in to DeepSpace" on another product's page, and its email form has no visible way to create an account. That is feedback for the platform, found by pointing the tool at its own ecosystem.
+
 The same click-through produced the top bar on every page, the three steps on the home screen, larger text, the replay you can step through, and History.
 
 ### An independent review
@@ -179,6 +187,7 @@ The look follows DeepSpace's design guide, and the direction is written as a com
 ## Limits
 
 - The test browser has no graphics card, so it can't draw WebGL: maps, 3D and some charts. The report says so when that happens and sets aside the findings it caused, but that part of the app goes untested. An app that is mostly a map gets little from a test.
+- The agent reads a page as soon as it loads, so it can catch an animation halfway. It is told to look twice, and the fix-list writer is told not to list that, but neither is a guarantee.
 - The agent can't use Google or GitHub sign-in or emailed codes. Apps behind sign-in need a test login with an email and password.
 - A test login passes through DeepSpace's proxy and Apify on its way to your app. Use a throwaway test account, never a real one.
 - It needs a public link. It can't reach an app running only on your laptop.
