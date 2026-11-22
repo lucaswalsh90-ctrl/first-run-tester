@@ -30,7 +30,7 @@ export function AgentHandoff({
   const todo = unfixed(issues).length
   if (todo === 0) return null
   const command = appName && runId ? agentCommand(appName, runId) : null
-  const links = appName && runId ? agentLinks(appName, runId) : []
+  const links = appName && runId ? agentLinks(appName, runId, site) : []
 
   async function copy(text: string, what: string) {
     try {

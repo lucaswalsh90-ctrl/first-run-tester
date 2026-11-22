@@ -43,7 +43,7 @@ describe('agentCommand', () => {
 })
 
 describe('agentLinks', () => {
-  const links = agentLinks('first-run-tester', 'run_123')
+  const links = agentLinks('first-run-tester', 'run_123', site)
 
   it('makes one link per coding agent, in the format each one documents', () => {
     expect(links.map((l) => l.name)).toEqual(['Claude Code', 'Cursor', 'Codex'])
@@ -54,13 +54,13 @@ describe('agentLinks', () => {
 
   it('carries the prompt intact, including the command to fetch the list', () => {
     const carried = decodeURIComponent(links[0].href.split('?q=')[1])
-    expect(carried).toBe(agentPrompt('first-run-tester', 'run_123'))
+    expect(carried).toBe(agentPrompt('first-run-tester', 'run_123', site))
     expect(carried).toContain(agentCommand('first-run-tester', 'run_123'))
     expect(carried).toContain('treat them as bug reports')
   })
 
   it("stays inside each agent's length limit", () => {
-    expect(agentPrompt('first-run-tester', 'run_123').length).toBeLessThan(5000) // Claude Code: 5,000 on the prompt
+    expect(agentPrompt('first-run-tester', 'run_123', site).length).toBeLessThan(5000) // Claude Code: 5,000 on the prompt
     expect(links[1].href.length).toBeLessThan(10000) // Cursor: 10,000 on the whole link
   })
 })
@@ -77,8 +77,14 @@ describe('asExample', () => {
 
 describe('agentPrompt', () => {
   it('has the agent check its folder before it fetches anything', () => {
-    const text = agentPrompt('first-run-tester', 'run_123')
+    const text = agentPrompt('first-run-tester', 'run_123', site)
     expect(text.indexOf('stop and ask me where the code is')).toBeLessThan(text.indexOf('npx deepspace'))
+  })
+
+  it('names the tested app, so the agent knows which code to look for', () => {
+    const text = agentPrompt('first-run-tester', 'run_123', site)
+    expect(text.split('\n')[0]).toBe('Fix the first-run problems that First-run tester found in My app (https://my-app.app.space/).')
+    expect(text).toContain('Do not commit or deploy')
   })
 })
 
