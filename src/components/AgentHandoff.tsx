@@ -35,6 +35,9 @@ export function AgentHandoff({
   const [folder, setFolder] = useState(() => readFolder(site.url))
   // Set when the browser refused to copy: the text is then shown, selected, to copy by hand.
   const [manual, setManual] = useState<{ text: string; what: string } | null>(null)
+  // The open-in-agent link last pressed, if it needs the browser to open an app. Some browsers
+  // ignore such a link silently, so the same prompt is then offered as text to copy.
+  const [pressed, setPressed] = useState<{ name: string; prompt: string } | null>(null)
   const todo = unfixed(issues).length
   if (todo === 0) return null
   const command = appName && runId ? agentCommand(appName, runId) : null
@@ -100,6 +103,7 @@ export function AgentHandoff({
               <a
                 key={link.name}
                 href={link.href}
+                onClick={() => setPressed(link.opensApp ? { name: link.name, prompt: link.prompt } : null)}
                 className="inline-flex items-center rounded-md border border-border bg-background px-4 py-2 font-medium text-foreground transition-colors hover:bg-muted"
               >
                 Open in {link.name}
@@ -109,6 +113,17 @@ export function AgentHandoff({
           <p className="mt-2 text-sm text-muted-foreground">
             It opens on this computer with the prompt waiting. Nothing is sent until you press Enter.
           </p>
+          {pressed && (
+            <div className="mt-3 flex flex-wrap items-center gap-3" role="status">
+              <p className="text-foreground">
+                Nothing opened? Some browsers, like the one inside the Claude app, can't open {pressed.name} from a
+                link.
+              </p>
+              <Button size="sm" variant="outline" onClick={() => copy(pressed.prompt, `${pressed.name} prompt`)}>
+                Copy the {pressed.name} prompt
+              </Button>
+            </div>
+          )}
           <label htmlFor="app-folder" className="mt-4 block font-medium text-foreground">
             Your app's folder on this computer (optional)
           </label>

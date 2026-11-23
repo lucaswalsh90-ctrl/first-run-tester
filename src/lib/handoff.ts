@@ -201,6 +201,12 @@ export function shortAgentPrompt(appName: string, runId: string, site: { name: s
  * room. The formats are the ones each maker documents (checked 2026-11-20):
  * Claude Code `claude-cli://open?q=`, Cursor `https://cursor.com/link/prompt?text=`,
  * Codex `codex://new?prompt=`.
+ *
+ * Each link also says which prompt it carries and whether it needs the browser
+ * to open an app on the computer. Some browsers don't do that: the one inside
+ * the Claude desktop app ignores such a link without a word (seen 2026-11-23,
+ * pressing the button there did nothing). The page uses both to offer the same
+ * prompt as text to copy when nothing opens.
  */
 export function agentLinks(
   appName: string,
@@ -208,18 +214,26 @@ export function agentLinks(
   site: { name: string; url: string },
   /** The app's folder on this computer, if the person has saved it. Opens the agent there. */
   folder = '',
-): Array<{ name: string; href: string }> {
-  const prompt = encodeURIComponent(agentPrompt(appName, runId, site))
+): Array<{ name: string; href: string; prompt: string; opensApp: boolean }> {
+  const full = agentPrompt(appName, runId, site)
+  const short = shortAgentPrompt(appName, runId, site)
   // Only a full path is passed on ("/Users/me/my-app" or "C:\\code\\my-app").
   const path = /^(\/|[A-Za-z]:[\\/])/.test(folder.trim()) ? encodeURIComponent(folder.trim()) : ''
   return [
     {
       name: 'Claude Code',
-      href: `claude-cli://open?q=${encodeURIComponent(shortAgentPrompt(appName, runId, site))}${path ? `&cwd=${path}` : ''}`,
+      href: `claude-cli://open?q=${encodeURIComponent(short)}${path ? `&cwd=${path}` : ''}`,
+      prompt: short,
+      opensApp: true,
     },
-    // Cursor's link has no folder setting: it opens in whatever project is already open.
-    { name: 'Cursor', href: `https://cursor.com/link/prompt?text=${prompt}` },
-    { name: 'Codex', href: `codex://new?prompt=${prompt}${path ? `&path=${path}` : ''}` },
+    // Cursor's link is an ordinary web address, and has no folder setting: it opens in whatever project is already open.
+    { name: 'Cursor', href: `https://cursor.com/link/prompt?text=${encodeURIComponent(full)}`, prompt: full, opensApp: false },
+    {
+      name: 'Codex',
+      href: `codex://new?prompt=${encodeURIComponent(full)}${path ? `&path=${path}` : ''}`,
+      prompt: full,
+      opensApp: true,
+    },
   ]
 }
 

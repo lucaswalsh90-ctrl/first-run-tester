@@ -94,6 +94,13 @@ describe('agentLinks', () => {
     expect(claude.href).not.toContain('cwd=')
   })
 
+  it('says which prompt each link carries, and which links need the browser to open an app', () => {
+    expect(links.map((l) => l.opensApp)).toEqual([true, false, true])
+    expect(links[0].prompt).toBe(shortAgentPrompt('first-run-tester', 'run_123', site))
+    expect(links[1].prompt).toBe(agentPrompt('first-run-tester', 'run_123', site))
+    for (const link of links) expect(decodeURIComponent(link.href)).toContain(link.prompt)
+  })
+
   it("stays inside each agent's length limit", () => {
     expect(links[1].href.length).toBeLessThan(10000) // Cursor: 10,000 on the whole link
   })
