@@ -13,9 +13,9 @@
  *                       through the app's read-only agent tools (src/ai/tools.ts).
  *
  * The links carry a short prompt that tells the agent to run agentCommand(),
- * and not the fix list itself: Claude Code caps a link's prompt at 5,000
- * characters and Cursor caps the whole link at 10,000, and a long list would
- * not fit. It also means the agent always reads the current list.
+ * and not the fix list itself: Cursor caps the whole link at 10,000 characters
+ * and Claude Code's link has far less room than its documented 5,000 (see
+ * CLAUDE_LINK_MAX_BYTES). It also means the agent always reads the current list.
  */
 import type { Issue } from './types'
 
@@ -146,8 +146,59 @@ export function agentPrompt(appName: string, runId: string, site: { name: string
 }
 
 /**
- * One link per coding agent. Each opens that agent with agentPrompt() in the
- * box. The formats are the ones each maker documents (checked 2026-11-20):
+ * The most text the Claude Code link may carry, counted in bytes.
+ *
+ * On a Mac, Claude Code handles its link by opening Terminal and typing one
+ * long command into it: the path to Claude, the folder, and the prompt packed
+ * as base64 (which makes it a third longer). Terminal accepts 1,024 characters
+ * on that line and silently drops the rest, including the Enter at the end. So
+ * a prompt that is too long does not arrive shortened: the command never runs
+ * and Claude Code never opens. That is what happened with the first version of
+ * this link, whose prompt was about 1,500 characters (seen 2026-11-23: both
+ * Terminal windows held a command cut at exactly 1,024).
+ *
+ * 560 bytes becomes 748 characters of base64, which leaves about 275 for the
+ * rest of the command: enough for the path to Claude and a saved folder path
+ * of roughly 120 characters.
+ */
+export const CLAUDE_LINK_MAX_BYTES = 560
+
+const bytes = (text: string) => new TextEncoder().encode(text).length
+
+/**
+ * The prompt for the Claude Code link: the folder check, the command, and a
+ * pointer to the working steps, which the command's reply carries as
+ * "howToUseThis" (src/server/agent-reports.ts). The agent ends up with the same
+ * instructions as agentPrompt() gives; they just arrive in two parts.
+ * If a long app name or address would push it over the limit, the address goes
+ * first and then the name is cut.
+ */
+export function shortAgentPrompt(appName: string, runId: string, site: { name: string; url: string }): string {
+  const write = (app: string) =>
+    [
+      `Fix the first-run problems First-run tester found in ${app}.`,
+      '',
+      "If this folder is not that app's code, stop and ask me where it is. Do not search the computer for it.",
+      '',
+      'Get the list by running:',
+      '',
+      agentCommand(appName, runId),
+      '',
+      'If it says you are not signed in, ask me to run "npx deepspace auth login". Do not guess the list. ' +
+        'Then follow the "howToUseThis" steps it returns. Do not commit, push or deploy.',
+    ].join('\n')
+
+  const full = write(`${site.name} (${site.url})`)
+  if (bytes(full) <= CLAUDE_LINK_MAX_BYTES) return full
+  let name = site.name
+  while (name.length > 1 && bytes(write(name)) > CLAUDE_LINK_MAX_BYTES) name = name.slice(0, -1)
+  return write(name.trim())
+}
+
+/**
+ * One link per coding agent. Cursor and Codex open with agentPrompt() in the
+ * box; Claude Code gets shortAgentPrompt(), because its link has much less
+ * room. The formats are the ones each maker documents (checked 2026-11-20):
  * Claude Code `claude-cli://open?q=`, Cursor `https://cursor.com/link/prompt?text=`,
  * Codex `codex://new?prompt=`.
  */
@@ -162,7 +213,10 @@ export function agentLinks(
   // Only a full path is passed on ("/Users/me/my-app" or "C:\\code\\my-app").
   const path = /^(\/|[A-Za-z]:[\\/])/.test(folder.trim()) ? encodeURIComponent(folder.trim()) : ''
   return [
-    { name: 'Claude Code', href: `claude-cli://open?q=${prompt}${path ? `&cwd=${path}` : ''}` },
+    {
+      name: 'Claude Code',
+      href: `claude-cli://open?q=${encodeURIComponent(shortAgentPrompt(appName, runId, site))}${path ? `&cwd=${path}` : ''}`,
+    },
     // Cursor's link has no folder setting: it opens in whatever project is already open.
     { name: 'Cursor', href: `https://cursor.com/link/prompt?text=${prompt}` },
     { name: 'Codex', href: `codex://new?prompt=${prompt}${path ? `&path=${path}` : ''}` },

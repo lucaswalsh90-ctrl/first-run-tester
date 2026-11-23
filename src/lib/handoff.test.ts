@@ -2,7 +2,21 @@
 import { describe, expect, it } from 'vitest'
 // The skill file itself, read as text (Vite's ?raw import).
 import skill from '../../agent-skill/first-run-fixes/SKILL.md?raw'
-import { HOW_TO_WORK, SKILL_ASK, SKILL_INSTALL, WORK_STEPS, agentCommand, agentLinks, agentPrompt, allFixPrompts, asExample, unfixed, withWorkSteps } from './handoff'
+import {
+  CLAUDE_LINK_MAX_BYTES,
+  HOW_TO_WORK,
+  SKILL_ASK,
+  SKILL_INSTALL,
+  WORK_STEPS,
+  agentCommand,
+  agentLinks,
+  agentPrompt,
+  allFixPrompts,
+  asExample,
+  shortAgentPrompt,
+  unfixed,
+  withWorkSteps,
+} from './handoff'
 
 const site = { name: 'My app', url: 'https://my-app.app.space/' }
 const issue = (title: string, status: 'open' | 'fixed' | 'still_broken' | 'retesting') => ({
@@ -55,10 +69,17 @@ describe('agentLinks', () => {
   })
 
   it('carries the prompt intact, including the command to fetch the list', () => {
-    const carried = decodeURIComponent(links[0].href.split('?q=')[1])
+    const carried = decodeURIComponent(links[1].href.split('?text=')[1])
     expect(carried).toBe(agentPrompt('first-run-tester', 'run_123', site))
     expect(carried).toContain(agentCommand('first-run-tester', 'run_123'))
     expect(carried).toContain('treat them as bug reports')
+    expect(decodeURIComponent(links[2].href.split('?prompt=')[1])).toBe(carried)
+  })
+
+  it('gives Claude Code the short prompt, which is all its link has room for', () => {
+    const carried = decodeURIComponent(links[0].href.split('?q=')[1])
+    expect(carried).toBe(shortAgentPrompt('first-run-tester', 'run_123', site))
+    expect(carried).toContain(agentCommand('first-run-tester', 'run_123'))
   })
 
   it('opens Claude Code and Codex in the app\'s folder when one is saved', () => {
@@ -74,8 +95,46 @@ describe('agentLinks', () => {
   })
 
   it("stays inside each agent's length limit", () => {
-    expect(agentPrompt('first-run-tester', 'run_123', site).length).toBeLessThan(5000) // Claude Code: 5,000 on the prompt
     expect(links[1].href.length).toBeLessThan(10000) // Cursor: 10,000 on the whole link
+  })
+})
+
+describe('shortAgentPrompt', () => {
+  const size = (text: string) => new TextEncoder().encode(text).length
+  // The command Claude Code types into Terminal for a link, as seen on a Mac on 2026-11-23.
+  const typedCommand = (prompt: string, folder: string) =>
+    `/Users/someone/.local/share/claude/versions/2.1.322 --deep-link-origin --deep-link-cwd-b64=${btoa(folder)} --prefill-b64=${btoa(prompt)}`
+
+  it('fits on the one Terminal line Claude Code types it into, with room for Enter', () => {
+    // The real run that failed: its old prompt made a 2,100-character command, cut at 1,024.
+    const prompt = shortAgentPrompt('first-run-tester', '1795200687619_0biywi', { name: 'RunningMap', url: 'https://runningmap.app.space/' })
+    expect(size(prompt)).toBeLessThanOrEqual(CLAUDE_LINK_MAX_BYTES)
+    const folder = '/Users/someone/Projects/Personal/DeepSpace/a-fairly-long-folder-name/first-run-tester'
+    expect(typedCommand(prompt, folder).length).toBeLessThan(1024)
+    // The prompt every other hand-off uses would not fit, which is why this one exists.
+    expect(typedCommand(agentPrompt('first-run-tester', '1795200687619_0biywi', site), folder).length).toBeGreaterThan(1024)
+  })
+
+  it('still has the folder check before the command, and what to do when not signed in', () => {
+    const text = shortAgentPrompt('first-run-tester', 'run_123', site)
+    expect(text.split('\n')[0]).toBe('Fix the first-run problems First-run tester found in My app (https://my-app.app.space/).')
+    expect(text.indexOf('stop and ask me where it is')).toBeLessThan(text.indexOf('npx deepspace agent invoke'))
+    expect(text).toContain('Do not search the computer for it')
+    expect(text).toContain('npx deepspace auth login')
+    expect(text).toContain('Do not guess the list')
+    expect(text).toContain('"howToUseThis"')
+    expect(text).toContain('Do not commit, push or deploy')
+  })
+
+  it('drops the address, then cuts the name, when an app would push it over the limit', () => {
+    const longUrl = `https://example.com/${'a'.repeat(300)}`
+    const noAddress = shortAgentPrompt('first-run-tester', 'run_123', { name: 'My app', url: longUrl })
+    expect(noAddress.split('\n')[0]).toBe('Fix the first-run problems First-run tester found in My app.')
+
+    const cut = shortAgentPrompt('first-run-tester', 'run_123', { name: 'Señor '.repeat(80), url: longUrl })
+    expect(size(cut)).toBeLessThanOrEqual(CLAUDE_LINK_MAX_BYTES)
+    expect(cut).toContain(agentCommand('first-run-tester', 'run_123'))
+    expect(cut).toContain('Do not commit, push or deploy')
   })
 })
 
