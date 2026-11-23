@@ -149,11 +149,14 @@ export default function RunPage() {
               </div>
             )}
             {checked.real.length === 0 ? (
-              <p className="text-lg text-foreground">
-                {checked.limited
-                  ? 'Nothing to fix in the parts the test browser could load.'
-                  : 'No problems found. A newcomer got through without getting stuck.'}
-              </p>
+              // When walled, the sign-in notice above says it all, so no "nothing found" line.
+              walled ? null : (
+                <p className="text-lg text-foreground">
+                  {checked.limited
+                    ? 'Nothing to fix in the parts the test browser could load.'
+                    : 'No problems found. A newcomer got through without getting stuck.'}
+                </p>
+              )
             ) : (
               <>
                 <FixMeter issues={checked.real} />

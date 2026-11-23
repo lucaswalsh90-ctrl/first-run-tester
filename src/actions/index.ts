@@ -19,7 +19,7 @@
 import type { ActionHandler, ActionResult, ActionTools } from 'deepspace/worker'
 import type { Env } from '../../worker'
 import { RETEST_PASSED, RETEST_STILL_BROKEN } from '../lib/history'
-import { GRAPHICS_LIMIT, setAsideTestLimits } from '../lib/test-limit'
+import { GRAPHICS_LIMIT, SIGN_IN_WALL_NOTE, hitSignInWall, setAsideTestLimits } from '../lib/test-limit'
 import { isPublicHttpUrl } from '../lib/url'
 import {
   LIMITS,
@@ -276,7 +276,11 @@ async function finishFullTest(
   // If the test browser could not draw part of the app, findings that blame
   // that are the tester's limit, not the app's bug. They never reach the fix list.
   const checked = setAsideTestLimits(summary.issues, sessions)
-  summary = { summary: summary.summary, issues: checked.real }
+  // A run stopped at a sign-in page with no test login has no real fix list,
+  // only the sign-in-wall notice. Drop its issues so the report does not list
+  // the login screen as the app's own problems.
+  const walled = !run.data.usedLogin && hitSignInWall(sessions)
+  summary = { summary: summary.summary, issues: walled ? [] : checked.real }
 
   // Fixed record ids: if this step is ever repeated, it overwrites the same
   // issues instead of adding a second copy of each.
@@ -313,7 +317,11 @@ async function finishFullTest(
           summary.summary,
           summary.issues,
           link,
-          checked.limited ? `${GRAPHICS_LIMIT.title}. ${GRAPHICS_LIMIT.body}` : undefined,
+          walled
+            ? `${SIGN_IN_WALL_NOTE.title}. ${SIGN_IN_WALL_NOTE.body}`
+            : checked.limited
+              ? `${GRAPHICS_LIMIT.title}. ${GRAPHICS_LIMIT.body}`
+              : undefined,
         ),
       })
       if (!sent.success) console.warn(`[checkRun] report email failed: ${sent.error}`)
