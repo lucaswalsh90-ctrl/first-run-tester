@@ -22,7 +22,7 @@ export const HESITATION_BELOW = 0.6
 const realSteps = (steps: Step[]) => steps.filter((s) => s.action !== 'done')
 
 /** The card surface used across the report. */
-const CARD = 'rounded-lg border border-border bg-card p-5 shadow-[0_1px_2px_0_rgba(28,25,23,0.04)]'
+const CARD = 'rounded-lg bg-card p-5 shadow-[0_1px_6px_0_var(--color-border)]'
 
 export function RunStatus({ status }: { status: Run['status'] }) {
   const map = {
@@ -46,7 +46,7 @@ export function Elapsed({ from, to }: { from: number; to?: number }) {
   }, [to])
   const sec = Math.max(0, Math.round(((to ?? now) - from) / 1000))
   return (
-    <span className="font-mono text-sm tabular-nums text-muted-foreground">
+    <span className="text-sm tabular-nums text-muted-foreground">
       {Math.floor(sec / 60)}:{String(sec % 60).padStart(2, '0')}
     </span>
   )
@@ -115,7 +115,7 @@ export function HesitationTrace({
           )
         })}
       </div>
-      <p className="mt-1.5 font-mono text-sm text-muted-foreground">
+      <p className="mt-1.5 text-sm text-muted-foreground">
         {bars.length} {bars.length === 1 ? 'step' : 'steps'} ·{' '}
         {unsure === 0 ? 'no hesitation' : `hesitated at ${unsure}`}
       </p>
@@ -271,7 +271,7 @@ export function MissionCard({ mission, startedAt, sample }: { mission: Mission; 
             />
           )}
           {mission.durationSec ? (
-            <p className="mt-3 font-mono text-sm text-muted-foreground">{mission.durationSec} s in the browser</p>
+            <p className="mt-3 text-sm text-muted-foreground">{mission.durationSec} s in the browser</p>
           ) : null}
         </>
       )}
@@ -316,7 +316,7 @@ export function StepRow({
       style={style}
       onMouseEnter={onPoint}
     >
-      <span className="mt-0.5 w-5 shrink-0 text-right font-mono text-sm text-muted-foreground">{step.step}</span>
+      <span className="mt-0.5 w-5 shrink-0 text-right text-sm text-muted-foreground">{step.step}</span>
       <div className="min-w-0 flex-1">
         <p className={finished ? 'text-muted-foreground' : 'text-foreground'}>
           {finished ? 'Stopped and wrote its report.' : plainStep(step.description)}
@@ -329,7 +329,7 @@ export function StepRow({
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className={cn('font-mono text-sm', hesitant ? 'font-medium text-primary' : 'text-muted-foreground')}>
+            <span className={cn('text-sm', hesitant ? 'font-medium text-primary' : 'text-muted-foreground')}>
               {pct}% sure{hesitant ? ' · hesitated here' : ''}
             </span>
           </div>
@@ -407,7 +407,7 @@ export function IssueCard({
   return (
     <li className={CARD}>
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 font-mono text-sm text-muted-foreground">{String(n).padStart(2, '0')}</span>
+        <span className="mt-0.5 text-sm text-muted-foreground">{n}.</span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3

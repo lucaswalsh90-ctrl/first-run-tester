@@ -162,7 +162,7 @@ export function HeroReplay() {
   return (
     <figure
       ref={figure}
-      className="rounded-lg border border-border bg-card p-5 shadow-[0_2px_8px_0_var(--color-border)] sm:p-6"
+      className="rounded-lg bg-card p-5 shadow-[0_2px_12px_0_var(--color-border)] sm:p-6"
       aria-label="Replay of an AI newcomer's session on a to-do app"
     >
       <figcaption className="flex items-center justify-between gap-3">
@@ -184,17 +184,10 @@ export function HeroReplay() {
         aria-hidden
         className="relative mt-4 select-none overflow-hidden rounded-md border border-border bg-background"
       >
-        <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-border" />
-          <span className="h-2.5 w-2.5 rounded-full bg-border" />
-          <span className="h-2.5 w-2.5 rounded-full bg-border" />
-          <span className="ml-2 truncate rounded bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground">
-            {new URL(SAMPLE_SITE.url).hostname}/todomvc
-          </span>
-        </div>
+        <p className="truncate px-5 pt-3 text-xs text-muted-foreground">{new URL(SAMPLE_SITE.url).hostname}/todomvc</p>
 
         <div className="px-5 pb-4 pt-3">
-          <p className="text-center text-3xl font-light tracking-tight text-muted-foreground">todos</p>
+          <p className="text-center text-3xl font-light text-muted-foreground">todos</p>
           <div
             ref={(el) => void (targets.current.input = el)}
             className={cn(
@@ -235,7 +228,7 @@ export function HeroReplay() {
             })}
           </ul>
 
-          <div className="flex items-center justify-between pt-2 font-mono text-xs text-muted-foreground">
+          <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground">
             <span>
               {todos.length - (checked ? 1 : 0)} {todos.length - (checked ? 1 : 0) === 1 ? 'item' : 'items'} left
             </span>
@@ -262,7 +255,7 @@ export function HeroReplay() {
                 <path d="M2 1.5v16.2l4.4-3.9 2.9 6.6 2.9-1.3-2.9-6.5h6.1z" />
               </svg>
               {view.wavering && (
-                <span className="absolute -top-9 left-4 whitespace-nowrap rounded-md bg-primary px-2 py-1 font-mono text-xs font-medium text-primary-foreground">
+                <span className="absolute -top-9 left-4 whitespace-nowrap rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground">
                   {pct}% sure. Is this it?
                 </span>
               )}
@@ -279,25 +272,30 @@ export function HeroReplay() {
         </p>
       </div>
 
-      <div className="mt-3 min-h-[4.5rem] rounded-md bg-muted p-3" aria-live="polite">
+      <div className="mt-3 flex min-h-[4.5rem] flex-col justify-center rounded-md bg-muted p-3" aria-live="polite">
         {current ? (
           <>
-            <p className={cn('font-mono text-sm', hesitant ? 'font-medium text-primary' : 'text-muted-foreground')}>
+            <p className={cn('text-sm', hesitant ? 'font-medium text-primary' : 'text-muted-foreground')}>
               Step {current.step} of {LAST} · {pct}% sure{hesitant ? ' · hesitated here' : ''}
             </p>
             <p className="mt-1 line-clamp-2 text-foreground">{plainStep(current.description)}</p>
           </>
         ) : (
           <>
-            <p className="text-sm font-semibold text-primary">
-              {finished ? 'Found' : 'Starting'}
+            <p className="font-semibold text-foreground">
+              {finished ? (
+                <>
+                  <span className="text-primary">Found:</span> {FOUND.title}
+                </>
+              ) : (
+                'A newcomer opens the app…'
+              )}
             </p>
-            <p className="mt-1 font-semibold text-foreground">{finished ? FOUND.title : 'A newcomer opens the app…'}</p>
           </>
         )}
       </div>
 
-      <p className={cn('mt-3 text-muted-foreground transition-opacity', !finished && 'opacity-60')}>
+      <p className="mt-3 text-muted-foreground">
         <span className="font-medium text-foreground">The fix it suggests:</span> {FOUND.change}
       </p>
     </figure>

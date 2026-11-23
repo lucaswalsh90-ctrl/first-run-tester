@@ -21,7 +21,7 @@ import { completeTestLogin, useTestLogin } from '@/lib/test-login'
 import type { Issue, Mission, Run, Site } from '@/lib/types'
 
 const POLL_MS = 4000
-const SECTION_LABEL = 'text-2xl font-semibold tracking-tight text-foreground'
+const SECTION_LABEL = 'text-2xl font-semibold text-foreground'
 
 export default function RunPage() {
   const { id = '' } = useParams()
@@ -202,10 +202,10 @@ export default function RunPage() {
 
       <header className="mt-4 flex flex-wrap items-start justify-between gap-4 border-b border-border pb-6">
         <div className="min-w-0">
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-4xl font-semibold text-foreground">
             {site?.data.name ?? 'Test'} {isSample && <span className="text-muted-foreground">(sample)</span>}
           </h1>
-          {site && <p className="mt-1 truncate font-mono text-sm text-muted-foreground">{site.data.url}</p>}
+          {site && <p className="mt-1 truncate text-sm text-muted-foreground">{site.data.url}</p>}
           {site && (
             <p className="mt-3 text-muted-foreground">
               <span className="text-foreground">Newcomer's goal:</span> {site.data.goal}
@@ -213,7 +213,7 @@ export default function RunPage() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          {usedLogin && <span className="font-mono text-sm text-muted-foreground">test login used</span>}
+          {usedLogin && <span className="text-sm text-muted-foreground">test login used</span>}
           <Elapsed from={run.data.startedAt} to={run.data.finishedAt} />
           <RunStatus status={run.data.status} />
         </div>

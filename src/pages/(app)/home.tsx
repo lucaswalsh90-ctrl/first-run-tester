@@ -28,15 +28,15 @@ import { isPublicHttpUrl } from '@/lib/url'
 import { cn } from '@/lib/utils'
 import { SAMPLE_SITE, SAMPLE_SUMMARY } from '@/server/sample-run'
 
-const CARD = 'rounded-lg border border-border bg-card p-5 shadow-[0_1px_2px_0_rgba(28,25,23,0.04)]'
-const SECTION_LABEL = 'text-xl font-semibold tracking-tight text-foreground'
+const CARD = 'rounded-lg bg-card p-5 shadow-[0_1px_6px_0_var(--color-border)]'
+const SECTION_LABEL = 'text-xl font-semibold text-foreground'
 
 export default function HomePage() {
   const { isSignedIn } = useAuthStatus()
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
       <header className="mb-8">
-        <h1 className="text-4xl font-semibold tracking-tight text-foreground">Your apps</h1>
+        <h1 className="text-4xl font-semibold text-foreground">Your apps</h1>
         <p className="mt-2 max-w-xl text-lg text-muted-foreground">
           An AI that has never seen your app clicks through it and hands you a fix list.
         </p>
@@ -67,13 +67,13 @@ function Guide({ at }: { at: 1 | 2 | 3 }) {
             key={label}
             aria-current={state === 'now' ? 'step' : undefined}
             className={cn(
-              'flex items-center gap-3 rounded-lg border px-4 py-3',
-              state === 'now' ? 'border-primary bg-card' : 'border-border',
+              'flex items-center gap-3 rounded-lg px-4 py-3',
+              state === 'now' && 'bg-card shadow-[0_1px_6px_0_var(--color-border)]',
             )}
           >
             <span
               className={cn(
-                'flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-mono text-sm font-medium',
+                'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-medium',
                 state === 'now' && 'bg-primary text-primary-foreground',
                 state === 'done' && 'bg-foreground text-background',
                 state === 'later' && 'bg-muted text-muted-foreground',
@@ -107,7 +107,7 @@ function PreviewHome() {
       <Guide at={1} />
       <div className={`${CARD} flex flex-wrap items-center justify-between gap-4`}>
         <div>
-          <p className="text-lg font-semibold text-foreground">This is a preview.</p>
+          <p className="text-lg font-semibold text-foreground">This is a preview</p>
           <p className="text-muted-foreground">
             {link ? 'Sign in and your link will be waiting in the form.' : 'Sign in to test your own app.'}{' '}
             It's free.
@@ -144,7 +144,7 @@ function PreviewHome() {
               <Link to="/sample" className="font-medium text-foreground underline underline-offset-4">
                 Open its finished report
               </Link>
-              <span className="font-mono text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 {SAMPLE_SUMMARY.issues.length} problems found
               </span>
             </div>
@@ -359,7 +359,7 @@ function History({ entries }: { entries: HistoryEntry[] }) {
             >
               <span className="min-w-0">
                 <span className="block truncate text-foreground">{entry.title}</span>
-                <span className="block font-mono text-sm text-muted-foreground">
+                <span className="block text-sm text-muted-foreground">
                   {new Date(entry.at).toLocaleString(undefined, WHEN)}
                   {entry.note ? ` · ${entry.note}` : ''}
                 </span>
@@ -392,7 +392,7 @@ function SiteSummary({ name, url, goal }: { name: string; url: string; goal: str
         href={url}
         target="_blank"
         rel="noreferrer"
-        className="block truncate font-mono text-sm text-muted-foreground underline-offset-4 hover:underline"
+        className="block truncate text-sm text-muted-foreground underline-offset-4 hover:underline"
       >
         {url}
       </a>

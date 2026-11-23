@@ -30,7 +30,7 @@ export function TopBar() {
   return (
     <header className="border-b border-border bg-background">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
-        <Link to="/" className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
+        <Link to="/" className="flex items-center gap-2 text-base font-semibold text-foreground">
           <Wordmark />
           First-run tester
         </Link>

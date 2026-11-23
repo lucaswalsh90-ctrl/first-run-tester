@@ -126,7 +126,7 @@ test.describe('Signed-out home preview', () => {
     await page.goto('/home')
 
     await expect(page.getByRole('heading', { name: 'Your apps', level: 1 })).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText('This is a preview.')).toBeVisible()
+    await expect(page.getByText('This is a preview')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Sign in to start' })).toBeVisible()
 
     // The form is there to look at, but can't be used until you sign in.
@@ -174,7 +174,7 @@ test.describe('Creating an account', () => {
       )
     }
     await expect(page.getByText('Outlook, Hotmail, Live')).toBeVisible()
-    await expect(page.getByText('switched off by DeepSpace')).toBeVisible()
+    await expect(page.getByText('has switched off sign-up by email and password')).toBeVisible()
     expect(errors).toEqual([])
   })
 

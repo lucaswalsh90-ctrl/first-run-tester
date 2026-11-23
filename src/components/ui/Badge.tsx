@@ -4,20 +4,23 @@ import { cn } from '@/lib/utils'
 type Variant = 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info'
 type Size = 'default' | 'sm' | 'lg'
 
+// A status is said in coloured words with a dot in front, the way a margin
+// note is written. It used to be a filled pill; a page of pills reads as a
+// template, and the words alone carry the meaning.
 const VARIANTS: Record<Variant, string> = {
-  default: 'bg-primary text-primary-foreground',
-  secondary: 'bg-secondary text-secondary-foreground',
-  destructive: 'bg-destructive text-destructive-foreground',
-  outline: 'border border-border text-foreground',
-  success: 'bg-success text-success-foreground',
-  warning: 'bg-warning text-warning-foreground',
-  info: 'bg-info text-info-foreground',
+  default: 'text-primary',
+  secondary: 'text-muted-foreground',
+  destructive: 'text-destructive',
+  outline: 'text-foreground',
+  success: 'text-success',
+  warning: 'text-warning',
+  info: 'text-info',
 }
 
 const SIZES: Record<Size, string> = {
-  default: 'px-2.5 py-0.5 text-xs',
-  sm: 'px-2 py-px text-[10px]',
-  lg: 'px-3 py-1 text-sm',
+  default: 'text-sm',
+  sm: 'text-xs',
+  lg: 'text-base',
 }
 
 export interface BadgeProps extends ComponentProps<'span'> {
@@ -29,7 +32,7 @@ export function Badge({ className, variant = 'default', size = 'default', ...pro
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full font-medium',
+        'inline-flex items-center gap-1.5 font-semibold before:h-1.5 before:w-1.5 before:shrink-0 before:rounded-full before:bg-current',
         VARIANTS[variant],
         SIZES[size],
         className,

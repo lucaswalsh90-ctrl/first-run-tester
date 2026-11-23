@@ -52,7 +52,7 @@ export function AgentHandoff({
   }
 
   return (
-    <div className="mb-4 rounded-lg border border-border bg-card p-5 shadow-[0_1px_2px_0_rgba(28,25,23,0.04)]">
+    <div className="mb-4 rounded-lg bg-card p-5 shadow-[0_1px_6px_0_var(--color-border)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold text-foreground">

@@ -30,14 +30,14 @@ export const signInHref = (provider: string) => `/api/auth/social-redirect?provi
 
 /** Each button picks up its company's own colour when you point at it. */
 export const PROVIDERS: Array<{ id: Provider; name: string; hint: string; hover: string }> = [
-  { id: 'google', name: 'Google', hint: 'Gmail, or any Google account', hover: 'hover:border-[#4285F4] hover:bg-[#f3f7fe]' },
+  { id: 'google', name: 'Google', hint: 'Gmail, or any Google account', hover: 'hover:border-[#4285F4]' },
   {
     id: 'microsoft',
     name: 'Microsoft',
     hint: 'Outlook, Hotmail, Live, or a work or school account',
-    hover: 'hover:border-[#00A4EF] hover:bg-[#f1f9fe]',
+    hover: 'hover:border-[#00A4EF]',
   },
-  { id: 'github', name: 'GitHub', hint: 'The account you push code with', hover: 'hover:border-[#1c1917] hover:bg-[#f4f2ee]' },
+  { id: 'github', name: 'GitHub', hint: 'The account you push code with', hover: 'hover:border-[#1c1917]' },
 ]
 
 /** A note set off by a rule down its left side, the way a proofreader marks a margin. */
@@ -49,7 +49,7 @@ export default function CreateAccountPage() {
       <Seo {...seo} title="Create your account | First-run tester" path="/create-account" />
       <TopBar />
       <main className="mx-auto max-w-xl px-4 py-10">
-        <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+        <h1 className="text-4xl font-semibold text-foreground sm:text-5xl">
           Create your <span className="marker">free</span> account
         </h1>
         <p className="mt-3 text-lg text-muted-foreground">
@@ -65,8 +65,8 @@ export default function CreateAccountPage() {
                 onClick={rememberSignInStarted}
                 className={`group flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3.5 transition-colors ${p.hover}`}
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-border bg-white">
-                  <ProviderMark provider={p.id} />
+                <span className="flex w-9 shrink-0 justify-center">
+                  <ProviderMark provider={p.id} size={28} />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-lg font-semibold text-foreground">Continue with {p.name}</span>
@@ -81,17 +81,16 @@ export default function CreateAccountPage() {
         <section className={`${NOTE} mt-10`}>
           <h2 className="text-lg font-semibold text-foreground">Using a different email address?</h2>
           <p className="mt-1 text-muted-foreground">
-            Signing up with only an email and a password is switched off by DeepSpace, the platform this app runs
-            on, so it can't be offered here. Google and Microsoft both let you make a free account with any email
-            address you already use, and that account then works on this page.
+            DeepSpace, the platform this app runs on, has switched off sign-up by email and password. Google and
+            Microsoft both let you make a free account with any email address, and that account works here.
           </p>
         </section>
 
         <section className={`${NOTE} mt-6`}>
           <h2 className="text-lg font-semibold text-foreground">What an account is for</h2>
           <p className="mt-1 text-muted-foreground">
-            Your apps and reports are saved to it, and only you can see them. The sample report stays free. A test
-            of your own app uses your DeepSpace credits, and the cost is shown before you start.
+            It keeps your apps and reports, and only you can see them. A test of your own app uses your DeepSpace
+            credits, and the cost is shown before you start.
           </p>
         </section>
 

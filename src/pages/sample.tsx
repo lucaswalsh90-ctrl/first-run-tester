@@ -43,7 +43,7 @@ export default function SamplePage() {
       <TopBar />
       <div className="mx-auto max-w-4xl px-4 py-8">
         <header className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground">A sample report</h1>
+          <h1 className="text-4xl font-semibold text-foreground">A sample report</h1>
           <Badge variant="success">Finished test</Badge>
         </header>
 
@@ -59,7 +59,7 @@ export default function SamplePage() {
         </div>
 
         <section className="mt-10">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground">1 · The fix list</h2>
+          <h2 className="text-2xl font-semibold text-foreground">The fix list</h2>
           <p className="mt-1 text-muted-foreground">
             What the newcomer ran into, most serious first. The fix prompts here are examples: they are about the
             demo app, so there is nothing for your own coding agent to do with them.
@@ -89,7 +89,7 @@ export default function SamplePage() {
         </section>
 
         <section className="mt-12">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground">2 · What the newcomer did</h2>
+          <h2 className="text-2xl font-semibold text-foreground">What the newcomer did</h2>
           <p className="mt-1 text-muted-foreground">
             Each bar is one step, and a short bar means the agent was unsure. Point at a bar, or press Replay
             steps.

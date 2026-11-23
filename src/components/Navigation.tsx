@@ -70,7 +70,7 @@ export default function Navigation() {
     <>
       <nav data-testid="app-navigation" className="border-b border-border bg-background">
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
-          <Link to="/" className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
+          <Link to="/" className="flex items-center gap-2 text-base font-semibold text-foreground">
             <Wordmark />
             First-run tester
           </Link>

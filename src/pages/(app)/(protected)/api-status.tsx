@@ -22,7 +22,7 @@ export default function ApiStatusPage() {
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">API status</h1>
+        <h1 className="text-2xl font-semibold">API status</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           A scaffolded pattern for server-backed resources with explicit loading, error, empty, and retry states.
         </p>

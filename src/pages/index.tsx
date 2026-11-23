@@ -39,9 +39,9 @@ import { saveLink, takeSignInStarted } from '../lib/prefill'
 import { seo } from '../seo'
 
 const HOW = [
-  ['Paste your link.', 'Say what a new user should be able to do.'],
-  ['Watch it try.', 'Every step shows how sure it was. Low means a newcomer would hesitate.'],
-  ['Fix, then retest.', 'Each problem comes with a prompt for your coding agent.'],
+  ['Paste your link', 'Say what a new user should be able to do.'],
+  ['Watch it try', 'Every step shows how sure it was. Low means a newcomer would hesitate.'],
+  ['Fix, then retest', 'Each problem comes with a prompt for your coding agent.'],
 ]
 
 const FACTS = [
@@ -80,9 +80,8 @@ export default function Landing() {
         <main className="mx-auto max-w-6xl px-6">
           <section className="grid items-start gap-12 pb-20 pt-10 lg:grid-cols-[1fr_minmax(0,32rem)] lg:pt-14">
             <div className="lg:pt-6">
-              <p className="text-lg font-medium text-primary">For anyone who just built an app</p>
-              <h1 className="mt-4 text-5xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-6xl">
-                Watch a <span className="marker">stranger</span> use your app.
+              <h1 className="text-5xl font-semibold leading-[1.1] text-foreground sm:text-6xl">
+                Watch a <span className="marker">stranger</span> use your app
               </h1>
               <p className="mt-6 max-w-md text-xl text-muted-foreground">
                 An AI that has never seen it clicks through in a real browser and shows you where it got stuck.
@@ -120,28 +119,25 @@ export default function Landing() {
             <HeroReplay />
           </section>
 
-          <section className="grid gap-12 border-t border-border py-16 lg:grid-cols-2" aria-labelledby="how">
+          <section className="grid gap-x-16 gap-y-12 py-12 lg:grid-cols-2" aria-labelledby="how">
             <div>
-              <h2 id="how" className="text-2xl font-semibold tracking-tight text-foreground">
+              <h2 id="how" className="text-2xl font-semibold text-foreground">
                 How it works
               </h2>
-              <ol className="mt-6">
-                {HOW.map(([title, body], i) => (
-                  <li key={title} className="flex gap-5 border-b border-border py-5 first:pt-0 last:border-b-0">
-                    <span className="font-mono text-3xl font-medium leading-none text-muted-foreground">{i + 1}</span>
-                    <div>
-                      <p className="text-xl font-semibold tracking-tight text-foreground">{title}</p>
-                      <p className="mt-1 text-lg text-muted-foreground">{body}</p>
-                    </div>
+              <ol className="mt-5 space-y-5">
+                {HOW.map(([title, body]) => (
+                  <li key={title}>
+                    <p className="text-xl font-semibold text-foreground">{title}</p>
+                    <p className="mt-1 text-lg text-muted-foreground">{body}</p>
                   </li>
                 ))}
               </ol>
             </div>
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-foreground">Good to know</h2>
-              <dl className="mt-6 rounded-lg border border-border bg-card">
+              <h2 className="text-2xl font-semibold text-foreground">Good to know</h2>
+              <dl className="mt-5 space-y-4">
                 {FACTS.map(([term, detail]) => (
-                  <div key={term} className="grid grid-cols-[9rem_1fr] gap-4 border-b border-border px-5 py-4 last:border-b-0">
+                  <div key={term} className="grid gap-x-6 gap-y-1 sm:grid-cols-[11rem_1fr]">
                     <dt className="font-semibold text-foreground">{term}</dt>
                     <dd className="text-muted-foreground">{detail}</dd>
                   </div>
@@ -150,16 +146,10 @@ export default function Landing() {
             </div>
           </section>
 
-          <section className="border-t border-border py-16 text-center">
-            <h2 className="text-3xl font-semibold tracking-tight text-foreground">See where a newcomer gets stuck.</h2>
-            <Link to="/home" className={`${BUTTON} mt-6 bg-primary text-primary-foreground`}>
-              Test your app
-            </Link>
-          </section>
         </main>
 
-        <footer className="border-t border-border">
-          <p className="mx-auto max-w-6xl px-6 py-6 font-mono text-sm text-muted-foreground">
+        <footer>
+          <p className="mx-auto max-w-6xl px-6 pb-10 pt-6 text-sm text-muted-foreground">
             Built on DeepSpace. Browser agent by Apify. Fix list by Claude.
           </p>
         </footer>

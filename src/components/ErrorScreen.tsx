@@ -114,7 +114,7 @@ export function ErrorScreen({ error, onReset }: ErrorScreenProps) {
           </span>
         </div>
 
-        <h1 className="text-lg font-semibold tracking-tight">
+        <h1 className="text-lg font-semibold">
           {decoded?.title ?? 'Something went wrong'}
         </h1>
         {decoded?.explanation && (

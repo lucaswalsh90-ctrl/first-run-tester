@@ -4,7 +4,7 @@
  * Google's and GitHub's are the same drawings the platform's own sign-in box
  * uses, so the Create account page and that box match. Microsoft's four
  * squares are added here because the platform's box has no Microsoft button.
- * Each is shown unaltered, in its own colours, on a plain white tile.
+ * Each is shown unaltered, in its own colours.
  */
 export type Provider = 'google' | 'microsoft' | 'github'
 
