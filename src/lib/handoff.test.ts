@@ -106,7 +106,7 @@ describe('shortAgentPrompt', () => {
     `/Users/someone/.local/share/claude/versions/2.1.322 --deep-link-origin --deep-link-cwd-b64=${btoa(folder)} --prefill-b64=${btoa(prompt)}`
 
   it('fits on the one Terminal line Claude Code types it into, with room for Enter', () => {
-    // The real run that failed: its old prompt made a 2,100-character command, cut at 1,024.
+    // The real run that failed: its old prompt made a command of about 2,400 characters, cut at 1,024.
     const prompt = shortAgentPrompt('first-run-tester', '1795200687619_0biywi', { name: 'RunningMap', url: 'https://runningmap.app.space/' })
     expect(size(prompt)).toBeLessThanOrEqual(CLAUDE_LINK_MAX_BYTES)
     const folder = '/Users/someone/Projects/Personal/DeepSpace/a-fairly-long-folder-name/first-run-tester'
