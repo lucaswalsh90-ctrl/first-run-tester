@@ -41,6 +41,8 @@ test.describe('Public sample', () => {
     // One button shows what handing the whole list to a coding agent looks like.
     await expect(page.getByRole('heading', { name: 'What you would hand to your coding agent' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Copy all 5 example prompts' })).toBeVisible()
+    // The open-in-agent links only exist on a signed-in report, so the sample says they are there.
+    await expect(page.getByText('one click opens Claude Code, Cursor or Codex')).toBeVisible()
 
     // Both sessions show their steps with no placeholder, and a hesitation is flagged.
     await expect(page.getByRole('heading', { name: 'First look' })).toBeVisible()

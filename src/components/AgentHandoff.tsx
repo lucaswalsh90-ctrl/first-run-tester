@@ -83,6 +83,15 @@ export function AgentHandoff({
       </div>
       {manual && <ManualCopy text={manual.text} />}
 
+      {/* The sample has no report of the visitor's own, so the open-in-agent links can't work here.
+          Without this line nobody looking at the sample would know they exist. */}
+      {example && (
+        <p className="mt-4 text-muted-foreground">
+          On your own report you don't have to copy: one click opens Claude Code, Cursor or Codex with the prompt
+          already in it.
+        </p>
+      )}
+
       {links.length > 0 && (
         <div className="mt-4 border-t border-border pt-4">
           <p className="font-medium text-foreground">Or open your coding agent with the prompt already in it</p>
