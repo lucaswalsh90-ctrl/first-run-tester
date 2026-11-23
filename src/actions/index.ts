@@ -286,10 +286,11 @@ async function finishFullTest(
   const walled = !run.data.usedLogin && hitSignInWall(sessions)
   summary = { summary: summary.summary, issues: walled ? [] : checked.real }
 
-  // Fixed record ids: if this step is ever repeated, it overwrites the same
-  // issues instead of adding a second copy of each.
   // How sure the report is about each fix, checked against what the sessions recorded (src/lib/confidence.ts).
   const ratings = summary.issues.map((issue) => rateIssue(issue, sessions))
+
+  // Fixed record ids: if this step is ever repeated, it overwrites the same
+  // issues instead of adding a second copy of each.
   for (const [n, issue] of summary.issues.entries()) {
     const rating = ratings[n]
     await tools.create(
