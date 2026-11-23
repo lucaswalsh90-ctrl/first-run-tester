@@ -39,6 +39,35 @@ export function clearLink() {
 }
 
 /**
+ * The platform brings a person back to the landing page after they sign in.
+ * Someone who just made an account should land on "Your apps", so the Create
+ * account page leaves a note here and the landing page acts on it once. The
+ * note is ignored after ten minutes, so an abandoned sign-in can't surprise
+ * anyone later.
+ */
+const SIGN_IN_KEY = 'first-run-tester:sign-in-started'
+const SIGN_IN_FRESH_MS = 10 * 60 * 1000
+
+export function rememberSignInStarted() {
+  try {
+    sessionStorage.setItem(SIGN_IN_KEY, String(Date.now()))
+  } catch {
+    /* no storage: the person lands on the landing page, as before */
+  }
+}
+
+/** True once, if a sign-in was started from the Create account page in the last ten minutes. */
+export function takeSignInStarted(now = Date.now()): boolean {
+  try {
+    const at = Number(sessionStorage.getItem(SIGN_IN_KEY))
+    sessionStorage.removeItem(SIGN_IN_KEY)
+    return at > 0 && now - at < SIGN_IN_FRESH_MS
+  } catch {
+    return false
+  }
+}
+
+/**
  * Where an app's code lives on this computer, so "Open in Claude Code" can
  * start in the right folder. Kept in this browser only (localStorage), one
  * entry per tested app, and never sent to the server.

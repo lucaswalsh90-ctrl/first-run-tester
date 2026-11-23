@@ -27,5 +27,5 @@ export { ROLES, ROLE_CONFIG, type Role } from 'deepspace'
  *  Added after the app's own first-run test found that newcomers saw no way to create an account. */
 export const SIGN_IN_COPY = {
   title: 'Sign in to First-run tester',
-  description: 'New here? Continue with Google or GitHub to create your free account. The email form is only for accounts that already exist.',
+  description: 'New here? Continue with Google or GitHub to create your free account. For Microsoft or Outlook, close this and choose Create account. The email form is only for accounts that already exist.',
 }

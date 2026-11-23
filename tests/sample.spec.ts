@@ -156,6 +156,45 @@ test.describe('Signed-out home preview', () => {
  * first click-through by a person: no way back from the sample except the
  * logo, a link you had to type twice, and reports that only sat there.
  */
+test.describe('Creating an account', () => {
+  // The only door used to be a box titled "Sign in". Newcomers, and the app's
+  // own tests, kept saying there was no way to create an account.
+  test('the page offers Google, Microsoft and GitHub, and is honest about email sign-up', async ({ page }) => {
+    const errors = captureConsoleErrors(page)
+    await page.goto('/sample')
+    await page.getByRole('link', { name: 'Create account' }).click()
+    await expect(page).toHaveURL(/\/create-account$/)
+    await expect(page.getByRole('heading', { name: 'Create your free account' })).toBeVisible()
+
+    // Each button is a plain link to the platform's own sign-in route.
+    for (const [name, id] of [['Google', 'google'], ['Microsoft', 'microsoft'], ['GitHub', 'github']]) {
+      await expect(page.getByRole('link', { name: `Continue with ${name}` })).toHaveAttribute(
+        'href',
+        `/api/auth/social-redirect?provider=${id}`,
+      )
+    }
+    await expect(page.getByText('Outlook, Hotmail, Live')).toBeVisible()
+    await expect(page.getByText('switched off by DeepSpace')).toBeVisible()
+    expect(errors).toEqual([])
+  })
+
+  test('the signed-out home screen points newcomers to it', async ({ page }) => {
+    await page.goto('/home')
+    await page.getByRole('link', { name: 'New here? Create your account' }).click()
+    await expect(page).toHaveURL(/\/create-account$/)
+  })
+
+  test('someone who started a sign-in there lands on Your apps, once', async ({ page }) => {
+    await page.goto('/create-account')
+    await page.evaluate(() => sessionStorage.setItem('first-run-tester:sign-in-started', String(Date.now())))
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/home$/)
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByRole('link', { name: /see a sample report/i })).toBeVisible()
+  })
+})
+
 test.describe('Getting around and interacting', () => {
   test('the top bar switches between the sample report and your apps', async ({ page }) => {
     await page.goto('/sample')

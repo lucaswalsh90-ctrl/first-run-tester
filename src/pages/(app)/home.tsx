@@ -109,11 +109,16 @@ function PreviewHome() {
         <div>
           <p className="text-lg font-semibold text-foreground">This is a preview.</p>
           <p className="text-muted-foreground">
-            {link ? 'Sign in and your link will be waiting in the form.' : 'Sign in with Google or GitHub to test your own app.'}{' '}
+            {link ? 'Sign in and your link will be waiting in the form.' : 'Sign in to test your own app.'}{' '}
             It's free.
           </p>
         </div>
-        <Button size="lg" onClick={signIn}>Sign in to start</Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link to="/create-account" className="font-medium text-foreground underline underline-offset-4">
+            New here? Create your account
+          </Link>
+          <Button size="lg" onClick={signIn}>Sign in to start</Button>
+        </div>
       </div>
 
       <section className="mt-10">

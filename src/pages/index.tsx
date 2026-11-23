@@ -30,12 +30,12 @@
  * WebSocket, prerendered to HTML at build. The live app is behind /home.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { HeroReplay } from '../components/landing/HeroReplay'
 import { Seo } from '../components/Seo'
 import { TopBar } from '../components/TopBar'
-import { saveLink } from '../lib/prefill'
+import { saveLink, takeSignInStarted } from '../lib/prefill'
 import { seo } from '../seo'
 
 const HOW = [
@@ -57,6 +57,11 @@ const BUTTON =
 
 export default function Landing() {
   const navigate = useNavigate()
+  // The platform returns people here after sign-in. If they came from the Create
+  // account page, take them on to Your apps, which is where they were headed.
+  useEffect(() => {
+    if (takeSignInStarted()) navigate('/home', { replace: true })
+  }, [navigate])
   const [link, setLink] = useState('')
 
   /** The link goes with you to the Add app form, so you never type it twice. */

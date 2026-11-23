@@ -44,6 +44,14 @@ export function TopBar() {
             )
           })}
         </nav>
+        {/* This bar can't tell whether you are signed in (it loads nothing), so the link is always here. */}
+        <Link
+          to="/create-account"
+          aria-current={pathname.startsWith('/create-account') ? 'page' : undefined}
+          className={cn(tabClass(pathname.startsWith('/create-account')), 'ml-auto')}
+        >
+          Create account
+        </Link>
       </div>
     </header>
   )

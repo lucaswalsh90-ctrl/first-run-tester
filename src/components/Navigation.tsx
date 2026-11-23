@@ -133,13 +133,18 @@ export default function Navigation() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <button
-              data-testid="nav-sign-in-button"
-              onClick={() => setShowAuthModal(true)}
-              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
-            >
-              Sign in
-            </button>
+            <>
+              <Link to="/create-account" className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+                Create account
+              </Link>
+              <button
+                data-testid="nav-sign-in-button"
+                onClick={() => setShowAuthModal(true)}
+                className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90"
+              >
+                Sign in
+              </button>
+            </>
           )}
 
           <button
