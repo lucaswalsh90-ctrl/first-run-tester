@@ -31,8 +31,6 @@ import {
   readBrowserAgentRun,
   readTestLogin,
   keepWhatWasSeen,
-  looksLoginWalled,
-  loginWallSummary,
   readSummary,
   reportEmail,
   summaryRequest,
@@ -260,11 +258,6 @@ async function finishFullTest(
       const read = readSummary(ai.data)
       // Drop any page address or on-screen words the sessions did not record.
       summary = { summary: read.summary, issues: keepWhatWasSeen(read.issues, sessions) }
-      // If the tester never got past a sign-in, the AI's issues are about the
-      // login screen, not the app. Say that plainly instead of listing them.
-      if (looksLoginWalled(sessions)) {
-        summary = { summary: loginWallSummary(site.data), issues: [] }
-      }
     } catch (e) {
       // The sessions are already paid for, so try the fix list again on the
       // next check instead of throwing the whole test away.
