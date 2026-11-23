@@ -4,9 +4,16 @@
  * The modern way (`navigator.clipboard.writeText`) is refused by some browsers:
  * the one built into the Claude desktop app, in-app browsers, and pages opened
  * inside another site. Found when the person who built this app pressed "Copy
- * example prompt" there and nothing useful happened. So this tries the modern
- * way, then the older way that works from a click almost everywhere, and tells
- * the caller if both failed so the page can show the text to copy by hand.
+ * example prompt" there and nothing useful happened.
+ *
+ * Why that browser matters: copying worked in regular Chrome all along, but the
+ * builder had the report open in the Claude app's own browser on purpose, so
+ * the report and the coding agent that would fix it sat in one window. That is
+ * the one spot where a fix prompt gets copied, so it has to work there.
+ *
+ * So this tries the modern way, then the older way that works from a click
+ * almost everywhere, and tells the caller if both failed so the page can show
+ * the text to copy by hand.
  */
 
 type Doc = Pick<Document, 'createElement' | 'execCommand'> & { body: Pick<HTMLElement, 'appendChild'> }

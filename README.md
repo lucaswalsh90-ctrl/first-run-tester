@@ -182,6 +182,12 @@ The same credit-free method was then pointed at four live apps that are known to
 
 The same click-through produced the top bar on every page, the three steps on the home screen, larger text, the replay you can step through, and History.
 
+### Copying in the browser next to your coding agent
+
+On 23 November the copy buttons on a report did nothing useful. They had worked in every test up to then, because every test had used regular Chrome. This time the report was open in the browser built into the Claude desktop app, so the report and the coding agent that would fix it sat in one window. That browser refuses the modern way of copying, and both buttons only said "Could not copy".
+
+It would have been easy to say "use Chrome". But the point of the product is to hand a problem to your coding agent, and the window you keep that agent in is the most likely place to press Copy. So copying now tries the modern way, then an older way that works from a click almost everywhere, and if a browser blocks both it shows the text on the page already selected ([src/lib/copy.ts](src/lib/copy.ts)). Checked in the same browser where it failed, and covered by two browser tests.
+
 ### Control tests: apps with a known answer
 
 None of the tests above had an answer key, so they could not show whether the tester is right. [CONTROL-TESTS.md](CONTROL-TESTS.md) fixes that. It uses six apps whose state is known in advance: a small packing-list page in a working version, a version with two planted bugs and a version where Add does nothing ([public/practice](public/practice)), an address with no page behind it, and two public apps that work. The expected answers were written down first, as 15 pass-or-fail checks.
