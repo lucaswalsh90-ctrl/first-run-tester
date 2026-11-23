@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SURE_ENOUGH, TOP_SCORE, describeSteps, hedgeIn, rateIssue, readStepRefs, readUnsure, realSteps } from './confidence'
+import { SURE_ENOUGH, TOP_SCORE, describeSteps, proseAt, hedgeIn, rateIssue, readStepRefs, readUnsure, realSteps } from './confidence'
 import { fixPrompt, keepWhatWasSeen, readSummary, reportEmail, summaryRequest, type DraftIssue } from '../server/tester'
 import { fixList } from '../server/agent-reports'
 
@@ -51,10 +51,43 @@ describe('rateIssue', () => {
     expect(r.unsure.every((u) => u.check.length > 0)).toBe(true)
   })
 
-  it('without exact words, says the code has nothing to be searched by', () => {
+  it('without exact words, says the code has nothing to be searched by, and cannot check the sightings', () => {
     const r = rateIssue({ ...backed, search: [] }, sessions)
-    expect(r.confidence).toBe(TOP_SCORE - 15)
     expect(r.unsure[0].what).toMatch(/quoted no words/)
+    expect(r.unsure[1].what).toMatch(/Seen once/)
+    expect(r.confidence).toBe(TOP_SCORE - 30)
+  })
+
+  it('reads "did not reach the goal" as saved in the database (0), not only as false', () => {
+    const saved = sessions.map((m) => ({ ...m, succeeded: m.succeeded ? 1 : 0 }))
+    const r = rateIssue({ ...backed, severity: 1, seenAt: [{ mission: 'Main goal', step: 2 }] }, saved)
+    expect(r.confidence).toBe(TOP_SCORE)
+    expect(r.evidence).toContain('It kept the newcomer from reaching the goal')
+  })
+
+  it('does not count a padded step (the closing step, or one about something else) as a second sighting', () => {
+    const padded = [
+      sessions[0],
+      {
+        ...sessions[1],
+        steps: [
+          ...sessions[1].steps,
+          { step: 4, description: 'stop: every step the goal asks for has been taken', url: '', action: 'done', confidence: null },
+          { step: 5, description: 'Scrolled to the footer.', url: '', action: 'scroll', confidence: null },
+        ],
+      },
+    ]
+    for (const extra of [4, 5]) {
+      const r = rateIssue({ ...backed, seenAt: [{ mission: 'Main goal', step: 2 }, { mission: 'Main goal', step: extra }] }, padded)
+      expect(r.confidence).toBe(TOP_SCORE - 15)
+      expect(r.unsure[0].what).toMatch(/Seen once/)
+    }
+  })
+
+  it('gives exact-word credit only for words written at a cited step', () => {
+    // "Passport" was recorded, but at step 1, not at the cited step 2.
+    const r = rateIssue({ ...backed, search: ['Passport'], seenAt: [{ mission: 'Main goal', step: 2 }] }, sessions)
+    expect(r.unsure.map((u) => u.what).join(' ')).toMatch(/"Passport"\) were not written at a step it points to/)
   })
 
   it('counts a problem seen once as unconfirmed, unless it stopped the newcomer', () => {
@@ -101,14 +134,26 @@ describe('rateIssue', () => {
     expect(r.unsure).toEqual(unsure)
   })
 
-  it('counts a hedge in the tester\'s own words at a cited step as one doubt', () => {
+  it('counts a hedge in the tester\'s own sentence for a cited step as one doubt', () => {
     const hedged = [
       sessions[0],
-      { ...sessions[1], steps: [...sessions[1].steps, { step: 4, description: 'Ticked it; it appeared to work.', url: '', action: '', confidence: null }] },
+      { ...sessions[1], report: '1. Typed Passport. 2. Clicked Packed; it appeared to work. 3. Read the page.' },
     ]
-    const r = rateIssue({ ...backed, seenAt: [...backed.seenAt!, { mission: 'Main goal', step: 4 }] }, hedged)
+    const r = rateIssue(backed, hedged)
     expect(r.confidence).toBe(TOP_SCORE - 15)
     expect(r.unsure[0].what).toContain('appeared to work')
+    // A hedge word inside a page's own label, in the action line, is not the tester's doubt.
+    const label = [sessions[0], { ...sessions[1], steps: sessions[1].steps.map((st) => ({ ...st, description: `${st.description} "Not sure yet"` })) }]
+    expect(rateIssue(backed, label).confidence).toBe(TOP_SCORE)
+  })
+
+  it('finds the tester\'s sentence for a step in its numbered account', () => {
+    const report = '1. Opened the page. 2. Clicked "Add 2. more" twice. 3. Read the list. 10. Stopped.'
+    expect(proseAt(report, 2)).toBe('2. Clicked "Add 2. more" twice.')
+    expect(proseAt(report, 3)).toBe('3. Read the list.')
+    expect(proseAt(report, 10)).toBe('10. Stopped.')
+    expect(proseAt(report, 7)).toBe('')
+    expect(proseAt('1. One.\n2. Two.', 1)).toBe('1. One.')
   })
 
   it('does not treat a detail about the newcomer\'s confusion as doubt about the problem', () => {

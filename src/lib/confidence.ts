@@ -11,9 +11,12 @@
  *   start at 95                                     (an AI tester is not a person;
  *                                                    the last 5 stays with you)
  *   no recorded step or screen behind it      -30
- *   no exact words from that screen           -15   (nothing to search the code for)
- *   seen only once, and the newcomer still
- *     got through                             -15
+ *   no exact words from that screen, written
+ *     at a cited step                         -15   (nothing to search the code for)
+ *   not seen at two steps that mention those
+ *     words, and the newcomer still got
+ *     through (a wording problem quoted
+ *     exactly needs only one look)            -15
  *   the "done when" check does not name
  *     anything on that screen                  -5
  *   each thing the AI or the tester was
@@ -75,8 +78,17 @@ export interface RatedIssue {
 /** The parts of a browser session that the rating looks at. */
 export interface RatedSession {
   title: string
-  succeeded?: boolean
-  steps?: Array<{ step: number; description: string; url?: string }>
+  /** true/false fresh from the browser agent, 1/0 once read back from the database. */
+  succeeded?: unknown
+  steps?: Array<{ step: number; description: string; url?: string; action?: string }>
+  /** The tester's own account, usually one numbered sentence per step. */
+  report?: string
+  confusing?: string
+}
+
+/** Whether a session failed its goal. Saved records hold 1/0, fresh ones true/false. */
+function failedGoal(s: RatedSession | undefined): boolean {
+  return s?.succeeded === false || s?.succeeded === 0
 }
 
 /**
@@ -146,12 +158,37 @@ export function pageOfSteps(refs: StepRef[], sessions: RatedSession[]): string |
   return undefined
 }
 
-/** What the tester wrote at the cited steps. */
-function stepTexts(refs: StepRef[], sessions: RatedSession[]): string {
-  return refs
-    .map((r) => sessions.find((s) => s.title === r.mission)?.steps?.find((s) => s.step === r.step)?.description ?? '')
-    .join(' ')
+/**
+ * The tester's own sentence for one step, from its numbered account
+ * ("1. Clicked ... 2. Typed ..."). The recorded step itself is usually a
+ * machine action line such as: click button "Packed".
+ */
+export function proseAt(report: string | undefined, step: number): string {
+  if (!report) return ''
+  const start = report.search(new RegExp(`(^|\\s)${step}\\.\\s`))
+  if (start < 0) return ''
+  const rest = report.slice(start).replace(/^\s+/, '')
+  // It ends where the next numbered sentence starts (a higher number, so "Add 2. more" inside it does not end it).
+  for (const m of rest.matchAll(/\s(\d{1,2})\.\s/g)) {
+    if (Number(m[1]) > step && m.index > 0) return rest.slice(0, m.index).trim()
+  }
+  return rest.trim()
 }
+
+/** Everything known about one cited step: its action line and the tester's sentence for it. */
+function textAt(r: StepRef, sessions: RatedSession[]): string {
+  const session = sessions.find((s) => s.title === r.mission)
+  const step = session?.steps?.find((s) => s.step === r.step)
+  return `${step?.description ?? ''} ${proseAt(session?.report, r.step)}`
+}
+
+/** The closing "stop" or "done" step, which shows nothing about any problem. */
+function isClosingStep(r: StepRef, sessions: RatedSession[]): boolean {
+  const step = sessions.find((s) => s.title === r.mission)?.steps?.find((s) => s.step === r.step)
+  return step?.action === 'done' || /^stop\b/i.test(step?.description ?? '')
+}
+
+const flat = (text: string) => text.toLowerCase().replace(/\s+/g, ' ')
 
 /**
  * Phrases that mean something did not work. A problem described with one of
@@ -200,24 +237,40 @@ export function rateIssue(issue: RatedIssue, sessions: RatedSession[]): Rating {
     })
   }
 
-  // 2. Exact words, so the code that draws that screen can be found.
-  const words = issue.search ?? []
+  // 2. Exact words, so the code that draws that screen can be found. They
+  //    count only when the tester wrote them at a cited step, or in the
+  //    "confusing" notes of a session it cites, so they belong to that screen.
+  const citedText = flat(
+    [
+      ...steps.map((r) => textAt(r, sessions)),
+      ...[...new Set(steps.map((r) => r.mission))].map((m) => sessions.find((s) => s.title === m)?.confusing ?? ''),
+    ].join('\n'),
+  )
+  const words = (issue.search ?? []).filter((w) => citedText.includes(flat(w)))
   if (words.length) {
     evidence.push(`Exact words on that screen: ${words.map((w) => `"${w}"`).join(', ')}`)
   } else {
     score -= COST.words
     unsure.push({
-      what: 'The tester quoted no words from that screen, so a coding agent has nothing exact to search the code for.',
+      what: issue.search?.length
+        ? `The words it quotes (${issue.search.map((w) => `"${w}"`).join(', ')}) were not written at a step it points to, so they may come from another screen.`
+        : 'The tester quoted no words from that screen, so a coding agent has nothing exact to search the code for.',
       check: `Find the screen yourself and note the button, heading or message beside the problem, so you can point your coding agent at the right file.`,
     })
   }
 
-  // 3. Seen more than once, or it stopped the newcomer.
+  // 3. Seen more than once, or it stopped the newcomer. A step counts as a
+  //    sighting only if it is not the closing step and the tester's words at
+  //    that step mention the problem's on-screen words, so citing any old
+  //    step cannot make a problem look confirmed.
   const missions = new Set(steps.map((s) => s.mission))
-  const stoppedGoal =
-    issue.severity === 1 && [...missions].some((m) => sessions.find((s) => s.title === m)?.succeeded === false)
-  if (steps.length >= 2) {
-    evidence.push(missions.size > 1 ? 'Both sessions ran into it' : 'Seen at more than one step')
+  const stoppedGoal = issue.severity === 1 && [...missions].some((m) => failedGoal(sessions.find((s) => s.title === m)))
+  const sightings = steps.filter(
+    (r) => !isClosingStep(r, sessions) && words.some((w) => flat(textAt(r, sessions)).includes(flat(w))),
+  )
+  const sightedIn = new Set(sightings.map((r) => r.mission))
+  if (sightings.length >= 2) {
+    evidence.push(sightedIn.size > 1 ? 'Both sessions ran into it' : 'Seen at more than one step')
   } else if (stoppedGoal) {
     evidence.push('It kept the newcomer from reaching the goal')
   } else if (steps.length === 1 && words.length && isWording(issue)) {
@@ -236,8 +289,8 @@ export function rateIssue(issue: RatedIssue, sessions: RatedSession[]): Rating {
   const check = issue.check.toLowerCase()
   const recorded = sessions.flatMap((s) => (s.steps ?? []).map((st) => st.description)).join('\n').toLowerCase()
   const quotedInCheck = [...issue.check.matchAll(/["“']([^"”']{2,60})["”']/g)].map((m) => m[1].toLowerCase())
-  const pagePath = page ? new URL(page).pathname.replace(/\/+$/, '').split('/').pop()?.toLowerCase() : undefined
-  const anchors = [...words, ...quotedInSteps(steps, sessions)].map((w) => w.toLowerCase())
+  const pagePath = lastPathPart(page)
+  const anchors = [...(issue.search ?? []), ...quotedInSteps(steps, sessions)].map((w) => w.toLowerCase())
   if (
     anchors.some((w) => check.includes(w)) ||
     quotedInCheck.some((q) => recorded.includes(q)) ||
@@ -255,7 +308,9 @@ export function rateIssue(issue: RatedIssue, sessions: RatedSession[]): Rating {
   // 5. Anything the AI said it was unsure of. If it listed nothing but the
   //    tester hedged at a cited step, that counts as one doubt.
   const doubts = [...(issue.unsure ?? [])]
-  const hedge = doubts.length ? null : hedgeIn(stepTexts(steps, sessions))
+  const hedge = doubts.length
+    ? null
+    : hedgeIn(steps.map((r) => proseAt(sessions.find((s) => s.title === r.mission)?.report, r.step)).join(' '))
   if (hedge) {
     doubts.push({
       what: `At that step the tester wrote: "${hedge.slice(0, 160)}"`,
@@ -270,6 +325,16 @@ export function rateIssue(issue: RatedIssue, sessions: RatedSession[]): Rating {
   }
 
   return { confidence: Math.max(5, score), evidence, unsure }
+}
+
+/** "packlist-b" for https://app/practice/packlist-b, or undefined. Never throws. */
+function lastPathPart(page: string | undefined): string | undefined {
+  if (!page) return undefined
+  try {
+    return new URL(page).pathname.replace(/\/+$/, '').split('/').pop()?.toLowerCase()
+  } catch {
+    return undefined
+  }
 }
 
 /** Reads `unsure` from an AI reply or a saved record: a list of { what, check } with text in both. */

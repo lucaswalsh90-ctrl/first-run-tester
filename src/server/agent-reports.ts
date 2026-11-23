@@ -180,7 +180,9 @@ export function fixList(
       doneWhen: i.data.check,
       // How sure the report is (5 to 95), and what it left open. Missing on reports from before 23 Nov 2026.
       ...(typeof i.data.confidence === 'number' ? { confidence: `${i.data.confidence}%` } : {}),
-      ...(Array.isArray(i.data.unsure) && i.data.unsure.length && (i.data.confidence ?? 100) < SURE_ENOUGH
+      // A retest that found it still broken has already reproduced it, so its doubts are answered.
+      ...(Array.isArray(i.data.unsure) && i.data.unsure.length && (i.data.confidence ?? 100) < SURE_ENOUGH &&
+      i.data.status !== 'still_broken'
         ? { checkFirst: i.data.unsure.map((u) => `${u.what} ${u.check}`) }
         : {}),
       ...(i.data.retestNote ? { lastRetest: i.data.retestNote } : {}),

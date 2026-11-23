@@ -467,7 +467,8 @@ export function IssueCard({
             {statusBadge}
           </div>
           <p className="mt-2 text-muted-foreground">{issue.detail}</p>
-          {issue.confidence != null && issue.status !== 'fixed' && (
+          {/* Once a retest has settled it (fixed, or reproduced it), the test's doubts are answered. */}
+          {issue.confidence != null && issue.status !== 'fixed' && issue.status !== 'still_broken' && (
             <FixConfidence confidence={issue.confidence} evidence={issue.evidence ?? []} unsure={issue.unsure ?? []} />
           )}
 
