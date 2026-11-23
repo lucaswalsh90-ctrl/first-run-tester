@@ -39,9 +39,19 @@ The links carry a short prompt and leave the fix list to the command, because Cl
 
 Every hand-off carries the same five working steps: check the folder, find the code by searching the repository for the words in the problem, make a small change, prove it from the terminal with the project's own checks and in the running app, and do not commit, push or deploy.
 
+**How a prompt knows where to look.** The coding agent that fixes a problem has never seen the screen, so each prompt carries two lines that tie the problem to the code: the page address a step recorded, and up to three pieces of text shown on that screen, such as a button label. The agent searches the repository for those words to find the file. The tester is asked to quote on-screen text exactly, the fix-list writer is asked to copy it and never invent it, and plain code then drops any phrase or address the sessions did not record ([src/server/tester.ts](src/server/tester.ts), `keepWhatWasSeen`). Tested as a hand-off: a fresh agent given one such prompt for the practice page with planted bugs opened the right file and changed the one wrong character, in five steps, and did not commit.
+
+**What a fix covers.** The list is what a newcomer ran into: things that stopped them, slowed them or looked unfinished. A fix can be an addition when a missing thing caused the stumble, such as a confirmation message or a line of explanation. It does not propose new features. The fix-list writer is told to list only what the sessions show.
+
 This was tested as a real hand-off. A fresh agent in this repository was given exactly the prompt the link carries, for a saved test of this app. It confirmed the folder, ran the command, left two problems alone because the code already fixed them, made two small edits, and did not commit or deploy. The same prompt for a different app, given to an agent in this folder, stopped before running anything and asked where that app's code is. A second hand-off used a single fix prompt for a problem a newcomer session had raised here (the labels "Blocks newcomers", "Slows newcomers" and "Polish" were never explained). The agent found the three files by searching, added one line above the fix list, ran the type check, the tests and a full build, checked the built page, and left the commit to me.
 
-The command returns the ranked problems, each with its fix prompt and a "done when" check. A second tool, `first_run_reports`, lists your apps and their latest tests. [agent-skill/first-run-fixes/SKILL.md](agent-skill/first-run-fixes/SKILL.md) is a small skill that walks a coding agent through the loop. To use it, copy that folder into your project's `.claude/skills/`.
+The command returns the ranked problems, each with its fix prompt and a "done when" check. A second tool, `first_run_reports`, lists your apps and their latest tests. [agent-skill/first-run-fixes/SKILL.md](agent-skill/first-run-fixes/SKILL.md) is a small skill that walks a coding agent through the loop. One command installs it from this repository, and every report shows it under "connect your coding agent once":
+
+```bash
+npx skills add lucaswalsh90-ctrl/first-run-tester --skill first-run-fixes
+```
+
+After that the person only has to say "fix what the first-run test found". The app also answers over MCP at `/_deepspace/agent/mcp`, which the platform provides, but that needs a credential the platform has no simple way to hand a person yet. The command line reuses their login, so the report points there.
 
 This door is read-only on purpose. An agent sees only the signed-in person's own reports, can't change anything, and can't start a test or a retest, so it can never spend your credits. The retest stays a person's click, and it is the only thing that marks a problem fixed.
 
@@ -108,6 +118,8 @@ A full test cost roughly 85 to 90 DeepSpace credits in testing, and a retest abo
 **The main tradeoff: Apify's browser agent over a browser inside the app.** Cloudflare's own headless browser worked on my laptop, but deploying it needs an admin DeepSpace account. Apify is available to every app through the integration proxy. The price is that Apify reports when a session ends, so the board updates session by session and can't show each click as it happens. Running two short sessions side by side keeps it feeling live.
 
 **The page asks the server for progress.** A background job would be tidier, but jobs run as the app owner and would bill the owner. The app needs each user to pay for their own tests, so the open page calls `checkRun`, which runs as the signed-in user. The cost: a test only moves forward while its page is open.
+
+**Creating an account uses the platform's sign-in, with one more way in.** The platform's sign-in box offers Google and GitHub. Its sign-in service also accepts Microsoft accounts, which covers Outlook, so the [Create account page](src/pages/create-account.tsx) offers all three as plain links to the platform's own route. Sign-up with only an email and a password is switched off by DeepSpace, and the page says so. No account or password handling lives in this app's code. The Microsoft button was checked as far as Microsoft's own sign-in form; a full sign-in with a real Microsoft account has not been run.
 
 **The cheapest model that does the job.** The fix list is a summarising task, so it uses Claude Haiku.
 
