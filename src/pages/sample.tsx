@@ -19,6 +19,7 @@ import { IssueCard, MissionCard, SeverityKey } from '../components/RunView'
 import { Badge } from '../components/ui'
 import type { Mission } from '../lib/types'
 import { seo } from '../seo'
+import { rateIssue } from '../lib/confidence'
 import { SAMPLE_MISSIONS, SAMPLE_SITE, SAMPLE_SUMMARY } from '../server/sample-run'
 import { asExample } from '../lib/handoff'
 import { fixPrompt, planFullTest } from '../server/tester'
@@ -26,8 +27,11 @@ import { fixPrompt, planFullTest } from '../server/tester'
 const PLANS = planFullTest(SAMPLE_SITE.url, SAMPLE_SITE.goal)
 
 /** Every prompt on this page is marked as an example, in what you read and in what you copy. */
-const examplePrompt = (issue: (typeof SAMPLE_SUMMARY.issues)[number]) =>
-  asExample(fixPrompt(SAMPLE_SITE, issue), SAMPLE_SITE.name)
+/** How sure each sample fix is, from the same checks a real report runs (src/lib/confidence.ts). */
+const RATINGS = SAMPLE_SUMMARY.issues.map((issue) => rateIssue(issue, SAMPLE_MISSIONS))
+
+const examplePrompt = (issue: (typeof SAMPLE_SUMMARY.issues)[number], n: number) =>
+  asExample(fixPrompt(SAMPLE_SITE, issue, RATINGS[n]), SAMPLE_SITE.name)
 
 const MISSIONS: Mission[] = SAMPLE_MISSIONS.map((saved, i) => ({
   runId: 'sample',
@@ -64,9 +68,9 @@ export default function SamplePage() {
           <AgentHandoff
             example
             site={SAMPLE_SITE}
-            issues={SAMPLE_SUMMARY.issues.map((issue) => ({
+            issues={SAMPLE_SUMMARY.issues.map((issue, n) => ({
               title: issue.title,
-              fixPrompt: fixPrompt(SAMPLE_SITE, issue),
+              fixPrompt: fixPrompt(SAMPLE_SITE, issue, RATINGS[n]),
               status: 'open' as const,
             }))}
           />
@@ -77,7 +81,7 @@ export default function SamplePage() {
                 key={issue.title}
                 n={n + 1}
                 example
-                issue={{ ...issue, fixPrompt: examplePrompt(issue), status: 'open' }}
+                issue={{ ...issue, ...RATINGS[n], fixPrompt: examplePrompt(issue, n), status: 'open' }}
               />
             ))}
           </ol>

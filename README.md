@@ -14,7 +14,7 @@ When you build with a coding agent, the agent that checks your app is the one th
 1. You add your app's public link and say what a newcomer should be able to do ("sign up and create a project").
 2. Two AI browser sessions run at the same time. One takes a first look. The other tries to reach your goal with no instructions.
 3. A live board shows every step and how sure the agent was. Low confidence marks the places a newcomer would hesitate.
-4. Claude turns both sessions into a ranked fix list.
+4. Claude turns both sessions into a ranked fix list. Each fix says how sure the test is. Below 90%, it says what is unclear and what to check by hand before you change anything.
 5. Each problem comes with a prompt for your own coding agent, worded so it edits your repository and says when the fix is done.
 6. After you fix something, **Retest** reruns one session and marks the problem Fixed or Still broken.
 7. If your app sits behind sign-in, you can give the newcomer a throwaway **test login**.
@@ -128,6 +128,8 @@ A full test cost roughly 85 to 90 DeepSpace credits in testing, and a retest abo
 **Fix prompts use fixed wording.** The AI supplies the facts (what happened, where, what to change, how to check). The sentences around them are a template in `fixPrompt`, so every prompt reads the same way.
 
 **Each app shows its own icon.** On Your apps, every app carries the icon your browser fetches from its own address (`/favicon.ico`, `/favicon.svg` or `/apple-touch-icon.png`), with a coloured first letter when none loads. It makes a list of apps easier to scan. Nothing is stored and no outside service is used ([src/components/SiteMark.tsx](src/components/SiteMark.tsx)).
+
+**How sure a fix is comes from evidence, not from the AI's opinion of itself.** The fix-list writer has to point at the recorded steps where the newcomer met each problem, copy the words on that screen, and say what it is unsure of. Plain code then checks each of those against what the sessions recorded and counts what holds up ([src/lib/confidence.ts](src/lib/confidence.ts)). A fix reaches 90% only when it is tied to a real step and page, has exact words to search the code for, was seen twice or stopped the newcomer, and nothing about it was left unclear. Anything missing turns into a plain sentence and a thing to check by hand. How often fixes reach 90%, and whether those were right, is measured in [CONTROL-TESTS.md](CONTROL-TESTS.md).
 
 **It never touches your code.** The app hands the fix list to your coding agent, as a prompt you paste or through the agent tools. Connecting to GitHub and editing a repository directly would need write access to someone's code, which is a trust question this version doesn't take on.
 

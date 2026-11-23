@@ -26,7 +26,11 @@ test.describe('Public sample', () => {
 
     // The fix list is on the page straight away: ranked issues, each with a prompt for a coding agent.
     const issues = page.locator('ol > li').filter({ hasText: 'Example fix prompt for a coding agent' })
-    await expect(issues).toHaveCount(5, { timeout: 2_000 })
+    await expect(issues).toHaveCount(3, { timeout: 2_000 })
+    // Each fix says how sure it is; the one below 90% says what to check by hand.
+    await expect(issues.first().getByText('80% sure', { exact: true })).toBeVisible()
+    await expect(issues.first().getByText('Only 80% sure. Check this by hand before you fix it:')).toBeVisible()
+    await expect(issues.nth(1).getByText('95% sure', { exact: true })).toBeVisible()
     await issues.first().getByText('Example fix prompt for a coding agent').click()
     await expect(issues.first().locator('pre')).toContainText('Make the change directly in this repository')
 
@@ -40,7 +44,7 @@ test.describe('Public sample', () => {
 
     // One button shows what handing the whole list to a coding agent looks like.
     await expect(page.getByRole('heading', { name: 'What you would hand to your coding agent' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Copy all 5 example prompts' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Copy all 3 example prompts' })).toBeVisible()
     // The sample has the same three open-in-agent buttons as a real report. Here they carry an
     // example prompt that tells the agent to stop, and no command to run.
     for (const name of ['Claude Code', 'Cursor', 'Codex']) {
@@ -90,7 +94,7 @@ test.describe('Public sample', () => {
       }
     })
     await page.goto('/sample')
-    await page.getByRole('button', { name: 'Copy all 5 example prompts' }).click()
+    await page.getByRole('button', { name: 'Copy all 3 example prompts' }).click()
     await expect(page.getByText('Example prompts copied')).toBeVisible()
     expect(await page.evaluate(() => (window as unknown as { __copied: string }).__copied)).toContain('EXAMPLE ONLY')
   })
@@ -104,7 +108,7 @@ test.describe('Public sample', () => {
       document.execCommand = () => false
     })
     await page.goto('/sample')
-    await page.getByRole('button', { name: 'Copy all 5 example prompts' }).click()
+    await page.getByRole('button', { name: 'Copy all 3 example prompts' }).click()
     const box = page.getByLabel(/This browser blocked copying/)
     await expect(box).toBeVisible()
     await expect(box).toHaveValue(/EXAMPLE ONLY/)

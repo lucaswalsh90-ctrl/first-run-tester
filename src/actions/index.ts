@@ -21,6 +21,7 @@ import type { Env } from '../../worker'
 import { RETEST_PASSED, RETEST_STILL_BROKEN } from '../lib/history'
 import { GRAPHICS_LIMIT, SIGN_IN_WALL_NOTE, hitSignInWall, setAsideTestLimits } from '../lib/test-limit'
 import { isPublicHttpUrl } from '../lib/url'
+import { rateIssue } from '../lib/confidence'
 import {
   LIMITS,
   browserAgentRequest,
@@ -76,6 +77,9 @@ interface Issue {
   check: string
   status: 'open' | 'retesting' | 'fixed' | 'still_broken'
   retestNote?: string
+  confidence?: number
+  evidence?: string[]
+  unsure?: Array<{ what: string; check: string }>
 }
 
 const fail = (error: string): ActionResult<never> => ({ success: false, error })
@@ -282,9 +286,13 @@ async function finishFullTest(
   const walled = !run.data.usedLogin && hitSignInWall(sessions)
   summary = { summary: summary.summary, issues: walled ? [] : checked.real }
 
+  // How sure the report is about each fix, checked against what the sessions recorded (src/lib/confidence.ts).
+  const ratings = summary.issues.map((issue) => rateIssue(issue, sessions))
+
   // Fixed record ids: if this step is ever repeated, it overwrites the same
   // issues instead of adding a second copy of each.
   for (const [n, issue] of summary.issues.entries()) {
+    const rating = ratings[n]
     await tools.create(
       'issues',
       {
@@ -293,9 +301,12 @@ async function finishFullTest(
         severity: issue.severity,
         title: issue.title,
         detail: issue.detail,
-        fixPrompt: fixPrompt(site.data, issue),
+        fixPrompt: fixPrompt(site.data, issue, rating),
         check: issue.check,
         status: 'open',
+        confidence: rating.confidence,
+        evidence: rating.evidence,
+        unsure: rating.unsure,
       } satisfies Issue,
       `${run.recordId}-issue-${n + 1}`,
     )
@@ -315,7 +326,7 @@ async function finishFullTest(
         text: reportEmail(
           site.data,
           summary.summary,
-          summary.issues,
+          summary.issues.map((issue, n) => ({ ...issue, confidence: ratings[n].confidence })),
           link,
           walled
             ? `${SIGN_IN_WALL_NOTE.title}. ${SIGN_IN_WALL_NOTE.body}`

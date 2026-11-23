@@ -115,3 +115,55 @@ So these results cover the instructions the app writes and everything it does wi
 - Four tests per control is enough to see that the result repeats. It is too few to give a percentage anyone should quote.
 - The six controls are small or simple apps. A long sign-up flow, a dashboard or an app behind a login would be a harder test.
 - The answer key covers blocking problems and planted bugs. It does not judge whether each smaller item is worth fixing.
+
+## How sure each fix is (23 November 2026)
+
+Each fix now carries a percentage. It comes from checks that plain code runs against what the sessions recorded, never from the AI rating itself ([src/lib/confidence.ts](src/lib/confidence.ts)). A fix reaches 90% only when it is tied to a recorded step and page, the tester wrote the screen's exact words at that step, it was seen at two steps that mention those words or it stopped the newcomer, and nothing about it was left unclear.
+
+### Measured on saved tests
+
+The 33 saved stand-in tests above (the controls plus GitHub Wrapped, ClaimCheck, Taskspace and Hacker News) were scored with the same rules three ways:
+
+| Fix lists | Tests | Fixes | At 90% or more | Middle score |
+| --- | --- | --- | --- | --- |
+| Old writer (saved replies) | 33 | 130 | 0 | 30% |
+| New writer, first version | 33 | 114 | 4 | 65% |
+| Old writer, eight control tests | 8 | 28 | 0 | 30% |
+| New writer, first version, same eight | 8 | 23 | 1 | |
+| New writer, final version, same eight | 8 | 20 | 5 (25%) | 80% |
+
+The old fix lists never pointed at a step in a way code could check, so none of their fixes could pass. The final version was run on eight control tests only, because the account had about 3 credits left.
+
+Most fixes still land between 60% and 80%. The reasons are real limits of what the tester saw: it reads page text, so it cannot see a strike-through or a highlight; it cannot always tell a slow page from a broken one; and many small findings are guesses about what the builder meant. Each one says so on the card, with a thing to check by hand.
+
+### Were the 90% fixes right?
+
+Nine fixes reached 90% across both new runs. None was wrong.
+
+- **7 right.** Checked against the practice pages' source, by opening the live sites, or from what earlier checks recorded: the Packed filter showing the wrong items, its "Showing what is packed" label (the same bug again, listed twice), nothing saying whether the list is kept, Enter adding an item with no hint, Toolshop's cart and checkout sharing `/checkout`, and the "Sign in to DeepSpace" box on ClaimCheck and Taskspace (seen on three DeepSpace apps in an earlier check, not opened again today).
+- **2 opinions.** "Clear packed items looks like it clears the filter" and "the Toolshop home page does not explain what it is". The facts in them check out; whether they are worth fixing cannot be checked.
+
+Before an independent review tightened the rules, two more fixes sat at 95% and both were only partly right. GitHub Wrapped's "Wrap it" button is disabled until you type, but the page does say "Paste a GitHub username to begin". On TodoMVC the checkbox is named only "Toggle Todo", but the filter links do have visible words. Under the final rules both fall below 90%.
+
+Some real bugs sit below 90%. The counter that stays at 0 (B) and the dead Add button (C) came back at 80%, because the writer noted that a slow update or a page still loading would look the same in its notes. The 404 page (D) came back at 80% because it was unsure the address was meant to exist. The score errs on the side of asking you to look.
+
+### One high and one low
+
+**95%: Packed filter shows the unticked items and hides the ticked one** (B, round 5)
+
+- Seen at First look step 3 and Main goal step 6 on `/practice/packlist-b`
+- Exact words on that screen: "Packed", "Nothing packed yet. Tick an item to mark it as packed."
+- Both sessions ran into it
+- The "done when" check redoes that step on that screen
+- Nothing about it was left unclear
+
+**20%: "Clear packed items" button does not say what it will remove** (B, round 5)
+
+The card says "Only 20% sure. Check this by hand before you fix it:"
+
+- The report does not point to a recorded step where this happened, so it may be a general impression. *Open the page and try the goal yourself. Only fix it if you run into the same thing.*
+- The words it quotes ("Clear packed items") were not written at a step it points to, so they may come from another screen. *Find the screen yourself and note the button, heading or message beside the problem.*
+- Seen once, and the newcomer still got through, so it could be a one-off. *Do the same thing and check that it happens for you too.*
+- The agent did not test what the button removes, so it is unclear whether the label is the only problem. *Tick one item, click "Clear packed items", and see whether only the ticked item is removed.*
+
+Like the rest of this file, these runs used the stand-in browser, not the paid cloud one.
