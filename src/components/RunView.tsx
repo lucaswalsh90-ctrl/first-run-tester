@@ -8,6 +8,8 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Badge, Button, useToast } from '@/components/ui'
+import { ManualCopy } from '@/components/ManualCopy'
+import { copyText } from '@/lib/copy'
 import { withWorkSteps } from '@/lib/handoff'
 import { plainStep } from '@/lib/plain-step'
 import { cn } from '@/lib/utils'
@@ -370,18 +372,21 @@ export function IssueCard({
 }) {
   const { success, error } = useToast()
   const [starting, setStarting] = useState(false)
+  // Set when the browser refused to copy: the prompt is then shown, selected, to copy by hand.
+  const [manual, setManual] = useState(false)
   const sev = SEVERITY[issue.severity] ?? SEVERITY[2]
   // Reports saved before today's working steps existed get them added here.
   const prompt = withWorkSteps(issue.fixPrompt)
 
   async function copy() {
-    try {
-      await navigator.clipboard.writeText(prompt)
-      if (example) success('Example copied', "It's for the demo app, so your coding agent has nothing to fix. Test your own app to get real ones.")
-      else success('Fix prompt copied', "Paste it into your coding agent, opened in your app's folder.")
-    } catch {
-      error('Could not copy', 'Open the prompt below, select the text and copy it by hand.')
+    if (!(await copyText(prompt))) {
+      setManual(true)
+      error('This browser blocked copying', 'The prompt is shown below, already selected.')
+      return
     }
+    setManual(false)
+    if (example) success('Example copied', "It's for the demo app, so your coding agent has nothing to fix. Test your own app to get real ones.")
+    else success('Fix prompt copied', "Paste it into your coding agent, opened in your app's folder.")
   }
 
   async function retest() {
@@ -444,6 +449,7 @@ export function IssueCard({
               retestHint && <span className="text-muted-foreground">{retestHint}</span>
             )}
           </div>
+          {manual && <ManualCopy text={prompt} />}
         </div>
       </div>
     </li>

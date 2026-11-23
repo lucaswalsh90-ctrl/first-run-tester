@@ -65,6 +65,47 @@ test.describe('Public sample', () => {
     expect(errors).toEqual([])
   })
 
+  // The browser built into the Claude desktop app refuses the modern clipboard.
+  // The first person to press these buttons there got "Could not copy" twice.
+  test('copying still works when the browser refuses the modern clipboard', async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as { __copied: string }
+      w.__copied = ''
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: () => Promise.reject(new Error('NotAllowedError')) },
+      })
+      document.execCommand = () => {
+        w.__copied = (document.activeElement as HTMLTextAreaElement | null)?.value ?? ''
+        return true
+      }
+    })
+    await page.goto('/sample')
+    await page.getByRole('button', { name: 'Copy all 5 example prompts' }).click()
+    await expect(page.getByText('Example prompts copied')).toBeVisible()
+    expect(await page.evaluate(() => (window as unknown as { __copied: string }).__copied)).toContain('EXAMPLE ONLY')
+  })
+
+  test('when a browser blocks copying outright, the text is shown already selected', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: () => Promise.reject(new Error('NotAllowedError')) },
+      })
+      document.execCommand = () => false
+    })
+    await page.goto('/sample')
+    await page.getByRole('button', { name: 'Copy all 5 example prompts' }).click()
+    const box = page.getByLabel(/This browser blocked copying/)
+    await expect(box).toBeVisible()
+    await expect(box).toHaveValue(/EXAMPLE ONLY/)
+    expect(await box.evaluate((el: HTMLTextAreaElement) => el.selectionEnd - el.selectionStart)).toBeGreaterThan(100)
+
+    const issue = page.locator('ol > li').filter({ hasText: 'Example fix prompt for a coding agent' }).first()
+    await issue.getByRole('button', { name: 'Copy example prompt' }).click()
+    await expect(issue.getByLabel(/This browser blocked copying/)).toHaveValue(/Please fix a first-run problem/)
+  })
+
   test('a private report is not shown to a signed-out visitor', async ({ page }) => {
     await page.goto('/runs/anything')
     await expect(page.getByRole('heading', { name: 'Sign in to test your own app' })).toBeVisible({ timeout: 15_000 })

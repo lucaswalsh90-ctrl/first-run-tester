@@ -9,6 +9,8 @@
  */
 import { useState } from 'react'
 import { Button, useToast } from '@/components/ui'
+import { ManualCopy } from '@/components/ManualCopy'
+import { copyText } from '@/lib/copy'
 import { agentCommand, agentLinks, allFixPrompts, asExample, unfixed } from '@/lib/handoff'
 import { readFolder, saveFolder } from '@/lib/prefill'
 import type { Issue } from '@/lib/types'
@@ -31,19 +33,22 @@ export function AgentHandoff({
   const { success, error } = useToast()
   // The app's folder on this computer, remembered in this browser only.
   const [folder, setFolder] = useState(() => readFolder(site.url))
+  // Set when the browser refused to copy: the text is then shown, selected, to copy by hand.
+  const [manual, setManual] = useState<{ text: string; what: string } | null>(null)
   const todo = unfixed(issues).length
   if (todo === 0) return null
   const command = appName && runId ? agentCommand(appName, runId) : null
   const links = appName && runId ? agentLinks(appName, runId, site, folder) : []
 
   async function copy(text: string, what: string) {
-    try {
-      await navigator.clipboard.writeText(text)
-      if (example) success(`${what} copied`, "They're for the demo app, so your coding agent has nothing to fix. Test your own app to get real ones.")
-      else success(`${what} copied`, "Paste it into your coding agent, opened in your app's folder.")
-    } catch {
-      error('Could not copy', 'Select the text and copy it by hand.')
+    if (!(await copyText(text))) {
+      setManual({ text, what })
+      error('This browser blocked copying', 'The text is shown below, already selected.')
+      return
     }
+    setManual(null)
+    if (example) success(`${what} copied`, "They're for the demo app, so your coding agent has nothing to fix. Test your own app to get real ones.")
+    else success(`${what} copied`, "Paste it into your coding agent, opened in your app's folder.")
   }
 
   return (
@@ -76,6 +81,7 @@ export function AgentHandoff({
               : `Copy all ${todo} fix prompts`}
         </Button>
       </div>
+      {manual && <ManualCopy text={manual.text} />}
 
       {links.length > 0 && (
         <div className="mt-4 border-t border-border pt-4">
