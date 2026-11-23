@@ -48,6 +48,12 @@ export type Issue = {
   check: string
   status: 'open' | 'retesting' | 'fixed' | 'still_broken'
   retestNote?: string
+  /** How sure the report is about this fix, 5 to 95 (src/lib/confidence.ts). Missing on reports from before 23 Nov 2026. */
+  confidence?: number
+  /** What backs the fix, in plain words. */
+  evidence?: string[]
+  /** What is unclear and what a person should check by hand. */
+  unsure?: Array<{ what: string; check: string }>
 }
 
 export const SEVERITY = {

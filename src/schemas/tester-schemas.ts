@@ -102,6 +102,12 @@ export const issuesSchema: CollectionSchema = {
     /** open → retesting → fixed | still_broken */
     { name: 'status', storage: 'text', interpretation: 'plain' },
     { name: 'retestNote', storage: 'text', interpretation: 'plain' },
+    /** How sure the report is about this fix, 5 to 95, from checks on the recorded sessions (src/lib/confidence.ts). */
+    { name: 'confidence', storage: 'number', interpretation: 'plain' },
+    /** ["what backs the fix", ...] */
+    { name: 'evidence', storage: 'text', interpretation: { kind: 'json' } },
+    /** [{ what, check }]: what is unclear and what to check by hand. */
+    { name: 'unsure', storage: 'text', interpretation: { kind: 'json' } },
   ],
   permissions: ownReadOnly,
 }

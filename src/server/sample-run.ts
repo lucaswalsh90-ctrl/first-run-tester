@@ -3,7 +3,9 @@
  * spending credits. Recorded 2026-11-20 against Playwright's public TodoMVC
  * demo: two browser-agent missions (Apify) and the fix list Claude Haiku wrote
  * from them. Nothing here is made up; screenshots are dropped because the
- * provider's links expire.
+ * provider's links expire. The fix list was written again on 2026-11-23 from
+ * the same two sessions, by the fix-list writer that cites steps and says what
+ * it is unsure of, so the sample shows how sure each fix is.
  */
 import type { DraftIssue, MissionResult } from './tester'
 
@@ -97,47 +99,72 @@ export const SAMPLE_MISSIONS: Array<{ title: string; revealAfterSec: number } & 
 ]
 
 export const SAMPLE_SUMMARY: { summary: string; issues: DraftIssue[] } = {
-  "summary": "The newcomer reached both goals: they learned what the site was and added two to-dos, marked one done, and filtered to completed items. Each step worked, but finding the done checkbox and the filter took guessing, and the homepage didn't explain what the site is for.",
+  "summary": "The newcomer reached the main goal: they added two to-dos, marked one done, and filtered to show only completed items. The rough spots were finding the done control, which has no visible label, and working out what the site is for from its homepage.",
   "issues": [
     {
       "severity": 2,
       "title": "Done checkbox has no visible label",
-      "detail": "To mark a to-do done, the newcomer had to identify the checkbox only by its hidden name 'Toggle Todo'. Nothing on screen said it marks an item complete, so they had to guess.",
-      "where": "The to-do list, the checkbox beside each item",
-      "change": "Show a visible cue next to each checkbox, or add a tooltip, that says 'Mark as done'.",
-      "check": "Add a to-do, hover over or look at its checkbox, and confirm the on-screen text says what it does without guessing."
+      "detail": "The newcomer had to guess that the checkbox labelled 'Toggle Todo' next to a to-do marks it complete, because no visible text explains it.",
+      "where": "To-do list, checkbox next to each item",
+      "page": "https://demo.playwright.dev/todomvc/#/",
+      "search": [
+        "Toggle Todo"
+      ],
+      "seenAt": [
+        {
+          "mission": "Main goal",
+          "step": 3
+        }
+      ],
+      "kind": "wording",
+      "change": "Give each to-do checkbox a visible hint or tooltip such as 'Mark as done'.",
+      "check": "On the to-do list, check checkbox 'Toggle Todo' and confirm the purpose is clear from the screen.",
+      "unsure": [
+        {
+          "what": "The agent read page text, so it may not know whether a visible checkbox already has nearby text or an icon.",
+          "check": "Look at the to-do list by eye and confirm whether the checkbox has any visible explanation."
+        }
+      ]
     },
     {
       "severity": 2,
-      "title": "Homepage doesn't explain what TodoMVC is for",
-      "detail": "On the first visit, the newcomer couldn't tell from the homepage whether the site was for learning frameworks, comparing them, or trying a to-do app. They had to click through two pages to work it out.",
-      "where": "The TodoMVC homepage (todomvc.com), its opening text",
-      "change": "Add one plain sentence near the top saying what the site is and who it's for, such as 'Compare the same to-do app built in different JavaScript frameworks.'",
-      "check": "Open the homepage cold and confirm that within a few seconds you can say what the site is for."
-    },
-    {
-      "severity": 2,
-      "title": "'Completed' filter is easy to miss",
-      "detail": "To show only finished items, the newcomer had to find a small text link at the bottom of the list. It is easy to overlook, and the newcomer noted that it was not prominent.",
-      "where": "The footer filter bar below the to-do list, the 'Completed' link",
-      "change": "Make the filter links larger or give them more spacing and a clearer look, so the Completed option stands out.",
-      "check": "Add two to-dos, mark one done, and confirm you can find and click the Completed filter on the first look without searching."
-    },
-    {
-      "severity": 3,
-      "title": "Demo banner adds noise on arrival",
-      "detail": "The page opens with a demo disclaimer banner. For a first-time user it competes with the actual task and makes the page feel less clear.",
-      "where": "The top of the to-do demo page, the disclaimer banner",
-      "change": "Move the disclaimer to the footer or a smaller note, or let people dismiss it.",
-      "check": "Open the demo page fresh and confirm the to-do input is the first thing you see, with the banner out of the way."
+      "title": "Homepage does not explain what TodoMVC is for",
+      "detail": "The newcomer followed the 'real TodoMVC app.' link and could not tell from the homepage whether the site is for learning frameworks, comparing them, or trying a to-do app.",
+      "where": "Demo page link 'real TodoMVC app.' leading to the homepage",
+      "page": "https://todomvc.com/",
+      "search": [
+        "real TodoMVC app."
+      ],
+      "seenAt": [
+        {
+          "mission": "First look",
+          "step": 1
+        }
+      ],
+      "kind": "wording",
+      "change": "Add a short plain-English sentence on the homepage saying what TodoMVC is and who it is for.",
+      "check": "On the demo page, click link 'real TodoMVC app.' and read the homepage's opening text to confirm it explains the site's purpose.",
+      "unsure": []
     },
     {
       "severity": 3,
-      "title": "No guidance on the to-do page",
-      "detail": "The demo page is mostly an empty input field. The only hint is 'Double-click to edit a todo', and nothing explains how to add or complete items.",
-      "where": "The empty to-do page, below the input field",
-      "change": "Add a one-line instruction under the input, such as 'Type a task and press Enter to add it.'",
-      "check": "Open the demo page with no prior knowledge and confirm you can tell how to add a to-do from the page alone."
+      "title": "Completed filter is a small, easy-to-miss link",
+      "detail": "The newcomer found the 'Completed' filter only as a small text link at the bottom of the list, which could be missed by a first-time user.",
+      "where": "Footer filter bar of the to-do list, link 'Completed'",
+      "page": "https://demo.playwright.dev/todomvc/#/",
+      "search": [
+        "Completed"
+      ],
+      "seenAt": [
+        {
+          "mission": "Main goal",
+          "step": 4
+        }
+      ],
+      "kind": "wording",
+      "change": "Make the filter links larger or more prominent so the 'Completed' option stands out.",
+      "check": "On the to-do list, click link 'Completed' and confirm the filter is easy to spot before clicking.",
+      "unsure": []
     }
   ]
 }

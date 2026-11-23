@@ -13,6 +13,7 @@ import { copyText } from '@/lib/copy'
 import { withWorkSteps } from '@/lib/handoff'
 import { plainStep } from '@/lib/plain-step'
 import { cn } from '@/lib/utils'
+import { SURE_ENOUGH } from '@/lib/confidence'
 import { SEVERITY, type Issue, type Mission, type Run, type Step } from '@/lib/types'
 
 /** Below this the agent was unsure, which is where a real newcomer would hesitate. */
@@ -334,13 +335,58 @@ export function StepRow({
   )
 }
 
+/**
+ * Why a fix got its percentage (see src/lib/confidence.ts). Below 90%, what is
+ * unclear and what to check by hand is shown open, because that is the part
+ * to read before changing anything. At 90% or more, the evidence is one click away.
+ */
+export function FixConfidence({
+  confidence,
+  evidence,
+  unsure,
+}: {
+  confidence: number
+  evidence: string[]
+  unsure: Array<{ what: string; check: string }>
+}) {
+  if (confidence < SURE_ENOUGH && unsure.length) {
+    return (
+      <div className="mt-3 rounded-md bg-muted p-3 text-foreground">
+        <p className="font-medium">Only {confidence}% sure. Check this by hand before you fix it:</p>
+        <ul className="mt-2 space-y-2">
+          {unsure.map((u) => (
+            <li key={u.what}>
+              <span>{u.what}</span> <span className="text-muted-foreground">{u.check}</span>
+            </li>
+          ))}
+        </ul>
+        {evidence.length > 0 && (
+          <p className="mt-2 text-sm text-muted-foreground">What is known: {evidence.join('. ')}.</p>
+        )}
+      </div>
+    )
+  }
+  return (
+    <details className="mt-2 text-sm text-muted-foreground">
+      <summary className="cursor-pointer">Why {confidence}% sure</summary>
+      <ul className="mt-1 list-disc pl-5">
+        {evidence.map((e) => (
+          <li key={e}>{e}</li>
+        ))}
+      </ul>
+    </details>
+  )
+}
+
 /** One line above the fix list saying what the three severity labels mean. */
 export function SeverityKey() {
   return (
     <p className="mb-4 max-w-2xl text-muted-foreground">
       <strong className="font-semibold text-foreground">{SEVERITY[1].label}</strong>: could not get through.{' '}
       <strong className="font-semibold text-foreground">{SEVERITY[2].label}</strong>: got through, but lost time.{' '}
-      <strong className="font-semibold text-foreground">{SEVERITY[3].label}</strong>: a small rough edge.
+      <strong className="font-semibold text-foreground">{SEVERITY[3].label}</strong>: a small rough edge.{' '}
+      <strong className="font-semibold text-foreground">% sure</strong>: how much of the fix the recorded steps
+      back up. Under {SURE_ENOUGH}%, the card says what to check by hand.
     </p>
   )
 }
@@ -358,7 +404,7 @@ export function IssueCard({
   example = false,
 }: {
   n: number
-  issue: Pick<Issue, 'severity' | 'title' | 'detail' | 'fixPrompt' | 'status' | 'retestNote'>
+  issue: Pick<Issue, 'severity' | 'title' | 'detail' | 'fixPrompt' | 'status' | 'retestNote' | 'confidence' | 'evidence' | 'unsure'>
   onRetest?: () => Promise<string | null>
   retestHint?: string
   /** On the sample report: the prompt is for someone else's app, so say so everywhere it appears. */
@@ -413,9 +459,17 @@ export function IssueCard({
               {issue.title}
             </h3>
             <Badge variant={sev.variant} className="whitespace-nowrap">{sev.label}</Badge>
+            {issue.confidence != null && (
+              <Badge variant={issue.confidence >= SURE_ENOUGH ? 'success' : 'warning'} className="whitespace-nowrap">
+                {issue.confidence}% sure
+              </Badge>
+            )}
             {statusBadge}
           </div>
           <p className="mt-2 text-muted-foreground">{issue.detail}</p>
+          {issue.confidence != null && issue.status !== 'fixed' && (
+            <FixConfidence confidence={issue.confidence} evidence={issue.evidence ?? []} unsure={issue.unsure ?? []} />
+          )}
 
           {issue.retestNote && issue.status !== 'retesting' && (
             <p className="mt-3 border-l-2 border-border pl-3 text-foreground">

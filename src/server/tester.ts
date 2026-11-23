@@ -13,6 +13,7 @@
  * this is the browser available to every app.
  */
 import { HOW_TO_WORK } from '../lib/handoff'
+import { SURE_ENOUGH, describeSteps, pageOfSteps, readKind, readStepRefs, readUnsure, realSteps, type Rating, type StepRef, type Unsure } from '../lib/confidence'
 
 
 export const BROWSER_AGENT = 'newpo/ai-browser-agent'
@@ -321,6 +322,12 @@ export interface DraftIssue {
   page?: string
   /** Exact words shown on that screen, for the coding agent to search the code for. */
   search?: string[]
+  /** The recorded steps where the newcomer met it (checked against the sessions by keepWhatWasSeen). */
+  seenAt?: StepRef[]
+  /** What the fix-list writer was unsure of, each with what a person should check by hand. */
+  unsure?: Unsure[]
+  /** 'wording' for what a page says or shows, 'behaviour' for something that did not work. */
+  kind?: 'behaviour' | 'wording'
 }
 
 const SUMMARY_SYSTEM = `You review reports from an AI agent that used a website as a first-time user.
@@ -357,9 +364,38 @@ Reply with JSON only, no prose, in exactly this shape:
    "where": "the page or screen and the element involved",
    "page": "the page address where it happened, copied from that step",
    "search": ["up to three short pieces of text shown on that screen, copied exactly"],
+   "seenAt": [{"mission": "Main goal", "step": 7}],
+   "kind": "behaviour",
    "change": "the smallest change that would fix it",
-   "check": "how someone would confirm the fix by using the site"}]}
+   "check": "how someone would confirm the fix by using the site",
+   "unsure": [{"what": "one thing about this problem that is unclear", "check": "what a person should check by hand"}]}]}
 Return at most 6 issues. Keep every field to one or two short sentences.
+
+"seenAt" lists every recorded step where the newcomer met this problem, using the mission name and the
+step number exactly as they appear in the reports, including any step where the agent looked again or
+tried again. Leave it empty if no single step shows it. Never list a step that does not show it.
+
+"check" must repeat what the newcomer did at that step, on the same screen, using the same words from
+the screen, so passing the check proves this exact problem is gone.
+
+"kind" is "behaviour" when something did not work or respond, and "wording" when the problem is what a
+page says or shows (a label, heading, explanation, missing instruction or layout).
+
+Give each fault its own entry. When two different parts of a page misbehave (for example a number that
+does not change and a list that shows the wrong items), list them as two problems, each with its own
+steps, words and check, so each can be fixed and checked on its own.
+
+"unsure" says honestly what is not known about what the newcomer saw, so the builder knows what to check
+by hand before changing code. Add an entry for each of these that applies: what the agent saw has two
+or more possible explanations that would need different fixes; a screen or step the agent could not
+reach; a guess about what the builder meant the page to do; the agent saying it was not sure whether
+something happened; a claim that nothing visibly changed (the agent reads the page's text, so a change
+of colour, a strike-through or a highlight would not show up in its notes). Not knowing which line of code is at fault is not a reason: the builder's coding
+agent will read the code. Each entry gets one short plain sentence on what is unclear and one on what
+to check. Leave it empty when the reports show the problem plainly.
+Do not write an entry about which part of the code is at fault (for example "the filter logic or the
+checkbox state", "the input or the button"): the fix is the same either way, and the coding agent
+will find it. Write one only when a person would decide differently about the fix after checking it.
 
 "search" is for the developer's coding agent, which will search the website's code for those words
 to find the right file. Copy only words the reports quote from the website itself: a button label,
@@ -473,9 +509,18 @@ export function readSummary(response: unknown): { summary: string; issues: Draft
         change: String(i.change ?? ''),
         check: String(i.check ?? ''),
         ...readWhereInCode(i),
+        ...readEvidence(i),
       }
     })
   return { summary: String(parsed.summary ?? ''), issues }
+}
+
+/** The steps a problem was seen at, and what the writer was unsure of. Present only when given. */
+function readEvidence(i: Record<string, unknown>): Pick<DraftIssue, 'seenAt' | 'unsure' | 'kind'> {
+  const seenAt = readStepRefs(i.seenAt)
+  const unsure = readUnsure(i.unsure)
+  const kind = readKind(i.kind)
+  return { ...(seenAt.length ? { seenAt } : {}), ...(unsure.length ? { unsure } : {}), ...(kind ? { kind } : {}) }
 }
 
 /** The page address and the on-screen words of one problem, tidied and capped. */
@@ -499,7 +544,7 @@ function readWhereInCode(i: Record<string, unknown>): Pick<DraftIssue, 'page' | 
  */
 export function keepWhatWasSeen(
   issues: DraftIssue[],
-  sessions: Array<Partial<Pick<MissionResult, 'steps' | 'report' | 'confusing'>>>,
+  sessions: Array<Partial<Pick<MissionResult, 'steps' | 'report' | 'confusing' | 'succeeded'>> & { title?: string }>,
 ): DraftIssue[] {
   const flat = (text: string) => text.toLowerCase().replace(/\s+/g, ' ')
   const seen = flat(
@@ -510,13 +555,19 @@ export function keepWhatWasSeen(
   // "https://app/x/" and "https://app/x#top" are the same page as "https://app/x".
   const samePage = (url: string) => url.trim().replace(/#.*$/, '').replace(/\/+$/, '').toLowerCase()
   const pages = new Set(sessions.flatMap((m) => (m.steps ?? []).map((s) => samePage(s.url ?? ''))).filter(Boolean))
+  const titled = sessions.map((m) => ({ title: m.title ?? '', steps: m.steps ?? [] }))
   return issues.map((issue) => {
     const search = (issue.search ?? []).filter((q) => seen.includes(flat(q)))
-    const { page: _page, search: _search, ...rest } = issue
+    // A step reference stays only if that session recorded that step.
+    const seenAt = realSteps(issue.seenAt, titled)
+    // With no page of its own, a problem takes the page its first real step was on.
+    const page = issue.page && pages.has(samePage(issue.page)) ? issue.page : pageOfSteps(seenAt, titled)
+    const { page: _page, search: _search, seenAt: _seenAt, ...rest } = issue
     return {
       ...rest,
-      ...(issue.page && pages.has(samePage(issue.page)) ? { page: issue.page } : {}),
+      ...(page ? { page } : {}),
       ...(search.length ? { search } : {}),
+      ...(seenAt.length ? { seenAt } : {}),
     }
   })
 }
@@ -530,12 +581,13 @@ export function keepWhatWasSeen(
  * Codex...). The AI fills in the facts; this fixed wording makes every prompt
  * read the same way and tells the agent to edit the repository itself.
  */
-export function fixPrompt(site: { name: string; url: string }, issue: DraftIssue): string {
+export function fixPrompt(site: { name: string; url: string }, issue: DraftIssue, rating?: Rating): string {
   return [
     `Please fix a first-run problem in ${site.name} (${site.url}).`,
     '',
     `Problem a first-time user hit: ${issue.title}`,
     `What happened: ${issue.detail}`,
+    ...(issue.seenAt?.length ? [`Seen at: ${describeSteps(issue.seenAt)} of the test`] : []),
     `Where: ${issue.where}`,
     // The two lines that tie the problem to the code: the page it was on and
     // the words on that screen. Only present when the sessions recorded them.
@@ -545,6 +597,15 @@ export function fixPrompt(site: { name: string; url: string }, issue: DraftIssue
       : []),
     `Change to make: ${issue.change}`,
     `Done when: ${issue.check}`,
+    // How sure the report is, and what to confirm first when it is not sure.
+    ...(rating
+      ? rating.confidence >= SURE_ENOUGH || rating.unsure.length === 0
+        ? [`How sure the test is: ${rating.confidence}%.`]
+        : [
+            `How sure the test is: ${rating.confidence}%. The test left these points open. Check what you can in the code before changing it, and tell me which ones I need to check in the running app:`,
+            ...rating.unsure.map((u) => `- ${u.what} ${u.check}`),
+          ]
+      : []),
     '',
     // The same five steps every hand-off carries: right folder, find the code,
     // small change, prove it in the terminal, leave shipping to the person.
@@ -560,13 +621,14 @@ export function fixPrompt(site: { name: string; url: string }, issue: DraftIssue
 export function reportEmail(
   site: { name: string; url: string },
   summary: string,
-  issues: Array<Pick<DraftIssue, 'severity' | 'title' | 'detail'>>,
+  issues: Array<Pick<DraftIssue, 'severity' | 'title' | 'detail'> & { confidence?: number }>,
   runLink: string,
   /** Set when the test browser could not draw part of the app (see src/lib/test-limit.ts). */
   testLimit?: string,
 ): string {
   const label = { 1: 'Blocks newcomers', 2: 'Slows newcomers', 3: 'Polish' } as const
-  const lines = issues.map((i, n) => `${n + 1}. [${label[i.severity]}] ${i.title}\n   ${i.detail}`)
+  const sure = (i: { confidence?: number }) => (i.confidence == null ? '' : ` (${i.confidence}% sure)`)
+  const lines = issues.map((i, n) => `${n + 1}. [${label[i.severity]}] ${i.title}${sure(i)}\n   ${i.detail}`)
   return [
     `First-run test of ${site.name} (${site.url})`,
     '',
