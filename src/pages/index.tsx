@@ -40,16 +40,16 @@ import { seo } from '../seo'
 
 const HOW = [
   ['Paste your link', 'Say what a new user should be able to do.'],
-  ['Watch it try', 'Every step shows how sure it was. Low means a newcomer would hesitate.'],
+  ['Watch it try', 'See how sure it was at each step.'],
   ['Fix, then retest', 'Each problem comes with a prompt for your coding agent.'],
 ]
 
 const FACTS = [
-  ['Why not your coding agent', 'It built the app, so it knows where things are. This one starts cold.'],
-  ['Your account', 'Use a Google, Microsoft or GitHub account you already have. There is no new password to set.'],
-  ['What a credit is', 'DeepSpace\'s currency. 100 credits is one US dollar.'],
-  ['Apps with sign-in', "Give the tester a throwaway email and password. On your app it can't use Google sign-in or emailed codes."],
-  ['Maps and 3D', "The test browser can't draw them, and the report says so."],
+  ['Why not your coding agent', 'It built the app, so nothing surprises it.'],
+  ['Your account', 'Google, Microsoft or GitHub. No new password.'],
+  ['What a credit is', '100 credits is one US dollar.'],
+  ['Apps with sign-in', 'Give the tester a throwaway email and password.'],
+  ['Maps and 3D', "The test browser can't draw them. The report says so."],
 ]
 
 const BUTTON =
@@ -84,7 +84,7 @@ export default function Landing() {
                 Watch a <span className="marker">stranger</span> use your app
               </h1>
               <p className="mt-6 max-w-md text-xl text-muted-foreground">
-                An AI that has never seen it clicks through in a real browser and shows you where it got stuck.
+                An AI that has never seen it clicks through and shows you where it got stuck.
               </p>
 
               <form onSubmit={start} className="mt-8 max-w-md">
@@ -113,7 +113,7 @@ export default function Landing() {
                 </Link>
               </div>
               <p className="mt-4 max-w-md text-muted-foreground">
-                The sample is free. Your own app costs 60 to 90 credits a test, and a free account has 500 a month.
+                The sample is free. A test costs 60 to 90 credits, and a free account has 500 a month.
               </p>
             </div>
             <HeroReplay />

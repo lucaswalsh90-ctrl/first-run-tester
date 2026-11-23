@@ -49,20 +49,16 @@ export default function SamplePage() {
 
         <div className="mt-4 rounded-md bg-muted p-4 text-foreground">
           <p>
-            A real report from testing <strong>someone else's app</strong>: Playwright's public to-do demo at{' '}
-            <span className="break-all">{SAMPLE_SITE.url}</span>. It's free to look at and needs no account.
-          </p>
-          <p className="mt-2">
-            Two AI newcomers tried it. One just looked around. The other was given a goal:{' '}
-            <strong>{SAMPLE_SITE.goal}</strong>.
+            A real report on <strong>someone else's app</strong>, Playwright's public to-do demo. One AI newcomer
+            looked around. Another was asked to <strong>{SAMPLE_SITE.goal}</strong>.
           </p>
         </div>
 
         <section className="mt-10">
           <h2 className="text-2xl font-semibold text-foreground">The fix list</h2>
           <p className="mt-1 text-muted-foreground">
-            What the newcomer ran into, most serious first. The fix prompts here are examples: they are about the
-            demo app, so there is nothing for your own coding agent to do with them.
+            What the newcomer ran into, most serious first. On your own app, each problem also gets a Retest
+            button.
           </p>
           <p className="mb-4 mt-3 max-w-2xl text-lg text-foreground">{SAMPLE_SUMMARY.summary}</p>
           <AgentHandoff
@@ -82,7 +78,6 @@ export default function SamplePage() {
                 n={n + 1}
                 example
                 issue={{ ...issue, fixPrompt: examplePrompt(issue), status: 'open' }}
-                retestHint="On your own app, a Retest button here checks this one problem again."
               />
             ))}
           </ol>
@@ -91,8 +86,7 @@ export default function SamplePage() {
         <section className="mt-12">
           <h2 className="text-2xl font-semibold text-foreground">What the newcomer did</h2>
           <p className="mt-1 text-muted-foreground">
-            Each bar is one step, and a short bar means the agent was unsure. Point at a bar, or press Replay
-            steps.
+            One bar per step. A short bar means it was unsure.
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {MISSIONS.map((m) => (
@@ -104,8 +98,7 @@ export default function SamplePage() {
         <footer className="mt-12 rounded-lg border border-border bg-card p-5">
           <h2 className="text-xl font-semibold text-foreground">Try it on your own app</h2>
           <p className="mt-1 text-muted-foreground">
-            Sign in with Google, Microsoft or GitHub. A test takes about a minute and uses 60 to 90 DeepSpace credits
-            (60 to 90 US cents). A free account comes with 500 a month.
+            A test takes about a minute and costs 60 to 90 credits. A free account has 500 a month.
           </p>
           <Link
             to="/home"

@@ -17,7 +17,6 @@
  *
  * This is a STATIC page (top level of src/pages/), prerendered at build.
  */
-import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { ProviderMark, type Provider } from '../components/ProviderMark'
 import { Seo } from '../components/Seo'
@@ -30,11 +29,11 @@ export const signInHref = (provider: string) => `/api/auth/social-redirect?provi
 
 /** Each button picks up its company's own colour when you point at it. */
 export const PROVIDERS: Array<{ id: Provider; name: string; hint: string; hover: string }> = [
-  { id: 'google', name: 'Google', hint: 'Gmail, or any Google account', hover: 'hover:border-[#4285F4]' },
+  { id: 'google', name: 'Google', hint: 'Gmail or any Google account', hover: 'hover:border-[#4285F4]' },
   {
     id: 'microsoft',
     name: 'Microsoft',
-    hint: 'Outlook, Hotmail, Live, or a work or school account',
+    hint: 'Outlook, Hotmail, work or school',
     hover: 'hover:border-[#00A4EF]',
   },
   { id: 'github', name: 'GitHub', hint: 'The account you push code with', hover: 'hover:border-[#1c1917]' },
@@ -53,8 +52,7 @@ export default function CreateAccountPage() {
           Create your <span className="marker">free</span> account
         </h1>
         <p className="mt-3 text-lg text-muted-foreground">
-          Use an account you already have. There is no new password to set, and the same button signs you back in
-          next time.
+          Use an account you already have. No new password.
         </p>
 
         <ul className="mt-6 space-y-3">
@@ -79,28 +77,15 @@ export default function CreateAccountPage() {
         </ul>
 
         <section className={`${NOTE} mt-10`}>
-          <h2 className="text-lg font-semibold text-foreground">Using a different email address?</h2>
+          <h2 className="text-lg font-semibold text-foreground">Using a different email?</h2>
           <p className="mt-1 text-muted-foreground">
-            DeepSpace, the platform this app runs on, has switched off sign-up by email and password. Google and
-            Microsoft both let you make a free account with any email address, and that account works here.
-          </p>
-        </section>
-
-        <section className={`${NOTE} mt-6`}>
-          <h2 className="text-lg font-semibold text-foreground">What an account is for</h2>
-          <p className="mt-1 text-muted-foreground">
-            It keeps your apps and reports, and only you can see them. A test of your own app uses your DeepSpace
-            credits, and the cost is shown before you start.
+            DeepSpace, which runs this app, has no email-and-password sign-up. Google and Microsoft both let you
+            make an account with any address.
           </p>
         </section>
 
         <p className="mt-8 text-muted-foreground">
-          Already have an account? Any button above signs you in. A test account made with an email and a password
-          signs in from{' '}
-          <Link to="/home" className="font-medium text-foreground underline underline-offset-4">
-            Your apps
-          </Link>
-          .
+          Already have an account? The same buttons sign you in. Only you can see your apps and reports.
         </p>
       </main>
     </>

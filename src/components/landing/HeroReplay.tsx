@@ -268,7 +268,7 @@ export function HeroReplay() {
       <div className="mt-5 flex items-end justify-between gap-4">
         <HesitationTrace steps={STEPS} active={view.on} onActive={jump} tall />
         <p className="max-w-[11rem] text-right text-sm text-muted-foreground">
-          One bar per step. Shorter means less sure. Point at one.
+          One bar per step. Shorter is less sure.
         </p>
       </div>
 

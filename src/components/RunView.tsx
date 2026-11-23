@@ -175,8 +175,8 @@ function useStepFocus(steps: Step[]) {
 
 /** One line under each session's title, so it is clear the sessions have different jobs. */
 const SESSION_JOB: Record<string, string> = {
-  'First look': 'Arrives cold with no goal and works out what the site is for.',
-  'Main goal': 'Tries to reach the goal with no instructions.',
+  'First look': 'No goal. Works out what the site is for.',
+  'Main goal': 'Tries to reach the goal, with no instructions.',
   Retest: 'Checks one problem again after a fix.',
 }
 
@@ -224,11 +224,6 @@ export function MissionCard({ mission, startedAt, sample }: { mission: Mission; 
         </div>
       ) : (
         <>
-          {realSteps(steps).length > 0 && (
-            <p className="mt-5 text-sm text-muted-foreground">
-              How sure it was at each step. A shorter bar means less sure.
-            </p>
-          )}
           {realSteps(steps).length > 0 && (
             <div className="mt-2 flex items-end justify-between gap-3">
               <HesitationTrace steps={steps} active={focus.active} onActive={focus.point} />
@@ -343,10 +338,9 @@ export function StepRow({
 export function SeverityKey() {
   return (
     <p className="mb-4 max-w-2xl text-muted-foreground">
-      <strong className="font-semibold text-foreground">{SEVERITY[1].label}</strong> means a newcomer could not get
-      through. <strong className="font-semibold text-foreground">{SEVERITY[2].label}</strong> means they got through
-      but lost time or confidence. <strong className="font-semibold text-foreground">{SEVERITY[3].label}</strong> is
-      a small rough edge.
+      <strong className="font-semibold text-foreground">{SEVERITY[1].label}</strong>: could not get through.{' '}
+      <strong className="font-semibold text-foreground">{SEVERITY[2].label}</strong>: got through, but lost time.{' '}
+      <strong className="font-semibold text-foreground">{SEVERITY[3].label}</strong>: a small rough edge.
     </p>
   )
 }

@@ -51,11 +51,11 @@ test.describe('Public sample', () => {
     // Retest is for your own app. A greyed-out button looked broken to a newcomer,
     // so there is no button here, only a line saying where it works.
     await expect(issues.first().getByRole('button', { name: /retest/i })).toHaveCount(0)
-    await expect(issues.first().getByText('On your own app, a Retest button here checks this one problem again.')).toBeVisible()
+    await expect(page.getByText('On your own app, each problem also gets a Retest button.')).toBeVisible()
 
     // The three labels are explained above the list. This line was written by a coding agent
     // that was handed the problem with the app's own fix prompt.
-    await expect(page.getByText('means a newcomer could not get through.')).toBeVisible()
+    await expect(page.getByText('could not get through.')).toBeVisible()
 
     // Steps are shown in plain English, not in the browser agent's own shorthand.
     await expect(page.getByText('Ticked the checkbox "Toggle Todo"')).toBeVisible()
@@ -173,8 +173,8 @@ test.describe('Creating an account', () => {
         `/api/auth/social-redirect?provider=${id}`,
       )
     }
-    await expect(page.getByText('Outlook, Hotmail, Live')).toBeVisible()
-    await expect(page.getByText('has switched off sign-up by email and password')).toBeVisible()
+    await expect(page.getByText('Outlook, Hotmail, work or school')).toBeVisible()
+    await expect(page.getByText('has no email-and-password sign-up')).toBeVisible()
     expect(errors).toEqual([])
   })
 

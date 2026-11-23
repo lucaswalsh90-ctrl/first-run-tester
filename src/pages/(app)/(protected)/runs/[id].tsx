@@ -93,7 +93,7 @@ export default function RunPage() {
       <h2 className={SECTION_LABEL}>{inFlight ? 'Browser sessions' : 'What the newcomer did'}</h2>
       {!inFlight && (
         <p className="mt-1 text-muted-foreground">
-          Each bar is one step, and a short bar means the agent was unsure. Point at a bar, or press Replay steps.
+          One bar per step. A short bar means it was unsure.
         </p>
       )}
       <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -168,7 +168,7 @@ export default function RunPage() {
                       n={n + 1}
                       issue={issue}
                       onRetest={isSample ? undefined : () => startRetest(issue.recordId, run.data.siteId)}
-                      retestHint={isSample ? 'On your own app, a Retest button here checks this one problem again.' : undefined}
+                      retestHint={isSample ? 'On your own app, a Retest button goes here.' : undefined}
                     />
                   ))}
                 </ol>
