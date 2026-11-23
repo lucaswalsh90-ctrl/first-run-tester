@@ -10,6 +10,8 @@ import {
   fixPrompt,
   isFinished,
   keepWhatWasSeen,
+  looksLoginWalled,
+  loginWallSummary,
   loginCredentials,
   planFullTest,
   planRetest,
@@ -437,5 +439,40 @@ describe('tying a problem to the code', () => {
     const request = summaryRequest({ name: 'n', url: 'https://example.com', goal: 'g' }, [])
     expect(request.system).toContain('"search"')
     expect(request.system).toContain('never tidy or invent')
+  })
+})
+
+describe('looksLoginWalled', () => {
+  const step = (url: string, description = '') => ({ step: 1, action: 'navigate', description, confidence: null, url })
+  const stuck = (url: string, report: string) => ({ succeeded: false, steps: [step(url)], report, confusing: '' })
+
+  it('spots a session that ended on a /login page and never reached the goal', () => {
+    const sessions = [stuck('https://castle-desk.up.railway.app/login', 'Enter the invite code you were given.'), stuck('https://castle-desk.up.railway.app/login', 'It asked me to sign in.')]
+    expect(looksLoginWalled(sessions)).toBe(true)
+  })
+
+  it('spots a wall from the words when the url is not a full address', () => {
+    const r = 'The page asked me to sign in and I had no login, so I could not sign in.'
+    expect(looksLoginWalled([stuck('', r), stuck('', r)])).toBe(true)
+  })
+
+  it('is false when even one session got in', () => {
+    const got = { succeeded: true, steps: [step('https://app/home')], report: 'did the task', confusing: '' }
+    expect(looksLoginWalled([got, stuck('https://app/login', 'asked me to sign in and log in')])).toBe(false)
+  })
+
+  it('does not trip on a normal app that merely has a sign-in link', () => {
+    const miss = { succeeded: false, steps: [step('https://app/pricing', 'I looked for the price but could not find it. There is a Sign in link in the corner.')], report: 'Could not find the price.', confusing: '' }
+    expect(looksLoginWalled([miss, miss])).toBe(false)
+  })
+
+  it('is false with no sessions', () => {
+    expect(looksLoginWalled([])).toBe(false)
+  })
+
+  it('names the app in the stuck-at-sign-in summary', () => {
+    const text = loginWallSummary({ name: 'Castle Desk', url: 'https://x' })
+    expect(text).toContain('Castle Desk')
+    expect(text).toContain('Test login')
   })
 })
