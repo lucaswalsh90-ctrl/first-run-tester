@@ -36,7 +36,7 @@ function SignedOutPanel() {
         <h1 className="text-lg font-semibold text-foreground">Sign in to test your own app</h1>
         <p className="mt-2 text-sm text-muted-foreground">Three steps, about two minutes:</p>
         <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-foreground">
-          <li>Sign in with Google or GitHub. If you're new, either one creates your free account.</li>
+          <li>Sign in with Google or GitHub. If you're new, either one creates your free account. For Microsoft or Outlook, use the Create account page.</li>
           <li>Paste your app's public link and say what a newcomer should be able to do.</li>
           <li>Watch an AI newcomer click through it, then get your fix list.</li>
         </ol>

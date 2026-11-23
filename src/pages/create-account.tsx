@@ -18,6 +18,8 @@
  * This is a STATIC page (top level of src/pages/), prerendered at build.
  */
 import { Link } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
+import { ProviderMark, type Provider } from '../components/ProviderMark'
 import { Seo } from '../components/Seo'
 import { TopBar } from '../components/TopBar'
 import { rememberSignInStarted } from '../lib/prefill'
@@ -26,13 +28,20 @@ import { seo } from '../seo'
 /** The platform's sign-in route. It sends the person to the provider and brings them back signed in. */
 export const signInHref = (provider: string) => `/api/auth/social-redirect?provider=${provider}`
 
-export const PROVIDERS = [
-  { id: 'google', name: 'Google', hint: 'Gmail, or any Google account' },
-  { id: 'microsoft', name: 'Microsoft', hint: 'Outlook, Hotmail, Live, or a work or school account' },
-  { id: 'github', name: 'GitHub', hint: 'The account you push code with' },
+/** Each button picks up its company's own colour when you point at it. */
+export const PROVIDERS: Array<{ id: Provider; name: string; hint: string; hover: string }> = [
+  { id: 'google', name: 'Google', hint: 'Gmail, or any Google account', hover: 'hover:border-[#4285F4] hover:bg-[#f3f7fe]' },
+  {
+    id: 'microsoft',
+    name: 'Microsoft',
+    hint: 'Outlook, Hotmail, Live, or a work or school account',
+    hover: 'hover:border-[#00A4EF] hover:bg-[#f1f9fe]',
+  },
+  { id: 'github', name: 'GitHub', hint: 'The account you push code with', hover: 'hover:border-[#1c1917] hover:bg-[#f4f2ee]' },
 ]
 
-const CARD = 'rounded-lg border border-border bg-card p-5'
+/** A note set off by a rule down its left side, the way a proofreader marks a margin. */
+const NOTE = 'border-l-2 border-primary pl-4'
 
 export default function CreateAccountPage() {
   return (
@@ -40,7 +49,9 @@ export default function CreateAccountPage() {
       <Seo {...seo} title="Create your account | First-run tester" path="/create-account" />
       <TopBar />
       <main className="mx-auto max-w-xl px-4 py-10">
-        <h1 className="text-4xl font-semibold tracking-tight text-foreground">Create your free account</h1>
+        <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+          Create your <span className="marker">free</span> account
+        </h1>
         <p className="mt-3 text-lg text-muted-foreground">
           Use an account you already have. There is no new password to set, and the same button signs you back in
           next time.
@@ -52,33 +63,36 @@ export default function CreateAccountPage() {
               <a
                 href={signInHref(p.id)}
                 onClick={rememberSignInStarted}
-                className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card px-5 py-4 transition-colors hover:bg-muted"
+                className={`group flex items-center gap-4 rounded-lg border border-border bg-card px-4 py-3.5 transition-colors ${p.hover}`}
               >
-                <span>
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-border bg-white">
+                  <ProviderMark provider={p.id} />
+                </span>
+                <span className="min-w-0 flex-1">
                   <span className="block text-lg font-semibold text-foreground">Continue with {p.name}</span>
                   <span className="block text-muted-foreground">{p.hint}</span>
                 </span>
-                <span aria-hidden className="text-xl text-muted-foreground">→</span>
+                <ChevronRight aria-hidden className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
               </a>
             </li>
           ))}
         </ul>
 
-        <section className={`${CARD} mt-8`}>
+        <section className={`${NOTE} mt-10`}>
           <h2 className="text-lg font-semibold text-foreground">Using a different email address?</h2>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-1 text-muted-foreground">
             Signing up with only an email and a password is switched off by DeepSpace, the platform this app runs
             on, so it can't be offered here. Google and Microsoft both let you make a free account with any email
             address you already use, and that account then works on this page.
           </p>
         </section>
 
-        <section className={`${CARD} mt-4`}>
+        <section className={`${NOTE} mt-6`}>
           <h2 className="text-lg font-semibold text-foreground">What an account is for</h2>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
-            <li>Your apps and reports are saved to it, and only you can see them.</li>
-            <li>The sample report stays free. A test of your own app uses your DeepSpace credits, and the cost is shown before you start.</li>
-          </ul>
+          <p className="mt-1 text-muted-foreground">
+            Your apps and reports are saved to it, and only you can see them. The sample report stays free. A test
+            of your own app uses your DeepSpace credits, and the cost is shown before you start.
+          </p>
         </section>
 
         <p className="mt-8 text-muted-foreground">

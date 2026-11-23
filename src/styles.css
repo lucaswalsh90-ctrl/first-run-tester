@@ -113,6 +113,16 @@
  */
 /* The hero's cursor wavers over a control the agent was unsure about. It
    runs only while that step is on screen (about a second and a half). */
+/*
+ * A proofreader's highlighter. The site reads like a marked-up proof, and this
+ * is its second colour: one phrase per page, never a whole line.
+ */
+.marker {
+  background: linear-gradient(transparent 56%, #fcd34d 56%, #fcd34d 92%, transparent 92%);
+  padding: 0 0.12em;
+  margin: 0 -0.12em;
+}
+
 @keyframes cursor-waver {
   0%, 100% { transform: translate(0, 0); }
   25% { transform: translate(-7px, 3px); }

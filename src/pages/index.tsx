@@ -46,7 +46,7 @@ const HOW = [
 
 const FACTS = [
   ['Why not your coding agent', 'It built the app, so it knows where things are. This one starts cold.'],
-  ['Your account', 'Sign in to this site with Google or GitHub. Either one creates your free account.'],
+  ['Your account', 'Use a Google, Microsoft or GitHub account you already have. There is no new password to set.'],
   ['What a credit is', 'DeepSpace\'s currency. 100 credits is one US dollar.'],
   ['Apps with sign-in', "Give the tester a throwaway email and password. On your app it can't use Google sign-in or emailed codes."],
   ['Maps and 3D', "The test browser can't draw them, and the report says so."],
@@ -80,9 +80,9 @@ export default function Landing() {
         <main className="mx-auto max-w-6xl px-6">
           <section className="grid items-start gap-12 pb-20 pt-10 lg:grid-cols-[1fr_minmax(0,32rem)] lg:pt-14">
             <div className="lg:pt-6">
-              <p className="font-mono text-sm uppercase tracking-wider text-primary">For anyone who just built an app</p>
+              <p className="text-lg font-medium text-primary">For anyone who just built an app</p>
               <h1 className="mt-4 text-5xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-6xl">
-                Watch a stranger use your app.
+                Watch a <span className="marker">stranger</span> use your app.
               </h1>
               <p className="mt-6 max-w-md text-xl text-muted-foreground">
                 An AI that has never seen it clicks through in a real browser and shows you where it got stuck.
@@ -122,7 +122,7 @@ export default function Landing() {
 
           <section className="grid gap-12 border-t border-border py-16 lg:grid-cols-2" aria-labelledby="how">
             <div>
-              <h2 id="how" className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
+              <h2 id="how" className="text-2xl font-semibold tracking-tight text-foreground">
                 How it works
               </h2>
               <ol className="mt-6">
@@ -138,12 +138,12 @@ export default function Landing() {
               </ol>
             </div>
             <div>
-              <h2 className="font-mono text-sm uppercase tracking-wider text-muted-foreground">Good to know</h2>
+              <h2 className="text-2xl font-semibold tracking-tight text-foreground">Good to know</h2>
               <dl className="mt-6 rounded-lg border border-border bg-card">
                 {FACTS.map(([term, detail]) => (
                   <div key={term} className="grid grid-cols-[9rem_1fr] gap-4 border-b border-border px-5 py-4 last:border-b-0">
-                    <dt className="font-mono text-sm uppercase tracking-wider text-muted-foreground">{term}</dt>
-                    <dd className="text-foreground">{detail}</dd>
+                    <dt className="font-semibold text-foreground">{term}</dt>
+                    <dd className="text-muted-foreground">{detail}</dd>
                   </div>
                 ))}
               </dl>

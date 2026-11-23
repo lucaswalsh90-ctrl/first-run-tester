@@ -29,7 +29,7 @@ import { cn } from '@/lib/utils'
 import { SAMPLE_SITE, SAMPLE_SUMMARY } from '@/server/sample-run'
 
 const CARD = 'rounded-lg border border-border bg-card p-5 shadow-[0_1px_2px_0_rgba(28,25,23,0.04)]'
-const SECTION_LABEL = 'font-mono text-sm uppercase tracking-wider text-muted-foreground'
+const SECTION_LABEL = 'text-xl font-semibold tracking-tight text-foreground'
 
 export default function HomePage() {
   const { isSignedIn } = useAuthStatus()

@@ -289,7 +289,7 @@ export function HeroReplay() {
           </>
         ) : (
           <>
-            <p className="font-mono text-sm font-medium uppercase tracking-wider text-primary">
+            <p className="text-sm font-semibold text-primary">
               {finished ? 'Found' : 'Starting'}
             </p>
             <p className="mt-1 font-semibold text-foreground">{finished ? FOUND.title : 'A newcomer opens the app…'}</p>

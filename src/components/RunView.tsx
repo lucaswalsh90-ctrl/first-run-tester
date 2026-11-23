@@ -255,7 +255,7 @@ export function MissionCard({ mission, startedAt, sample }: { mission: Mission; 
           )}
           {mission.confusing && (
             <div className="mt-4 rounded-md bg-muted p-4">
-              <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">In its own words</p>
+              <p className="text-sm font-semibold text-muted-foreground">In its own words</p>
               <p className="mt-1 whitespace-pre-line text-foreground">{mission.confusing}</p>
             </div>
           )}
