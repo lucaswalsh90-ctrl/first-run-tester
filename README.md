@@ -35,6 +35,8 @@ Every report shows this command for its own test. A website can't open your term
 - **Copy all fix prompts.** The whole list in one paste.
 - **Let the agent fetch it.** Give your agent the command.
 
+The free sample report shows these same three buttons with an example prompt, so you can see the whole hand-off before you sign in. On the sample the prompt is marked example only and tells the agent to stop, since the demo app is not your code.
+
 The links carry a short prompt and leave the fix list to the command, because Cursor caps the whole link at 10,000 characters and Claude Code has far less room. On a Mac, Claude Code opens Terminal and types the prompt in as one command, and Terminal drops everything past 1,024 characters, including the Enter. The first version of the Claude Code link was too long, so the command never ran and Claude Code never opened. That link now carries about 500 characters and gets the working steps from the command's reply (`CLAUDE_LINK_MAX_BYTES` and `shortAgentPrompt`). Some browsers never pass such a link on to the computer: the one inside the Claude desktop app ignores it without a word. So after you press a link that has to open an app, the box asks "Nothing opened?" and offers the same prompt to copy. The prompt names the tested app, so the agent can tell whether it is in the right folder before it runs anything. A link can't know where your code is, so the box has an optional field for your app's folder. It is kept in your browser only, and with it Claude Code and Codex open in that folder. See [src/lib/handoff.ts](src/lib/handoff.ts).
 
 Every hand-off carries the same five working steps: check the folder, find the code by searching the repository for the words in the problem, make a small change, prove it from the terminal with the project's own checks and in the running app, and do not commit, push or deploy.
@@ -125,6 +127,8 @@ A full test cost roughly 85 to 90 DeepSpace credits in testing, and a retest abo
 
 **Fix prompts use fixed wording.** The AI supplies the facts (what happened, where, what to change, how to check). The sentences around them are a template in `fixPrompt`, so every prompt reads the same way.
 
+**Each app shows its own icon.** On Your apps, every app carries the icon your browser fetches from its own address (`/favicon.ico`, `/favicon.svg` or `/apple-touch-icon.png`), with a coloured first letter when none loads. It makes a list of apps easier to scan. Nothing is stored and no outside service is used ([src/components/SiteMark.tsx](src/components/SiteMark.tsx)).
+
 **It never touches your code.** The app hands the fix list to your coding agent, as a prompt you paste or through the agent tools. Connecting to GitHub and editing a repository directly would need write access to someone's code, which is a trust question this version doesn't take on.
 
 **Why an app when a skill could do this.** A skill such as the open-source [naive-user](https://github.com/TechGardenCode/naive-user) runs the same kind of test inside your own coding agent, for free. That is a good fit for one developer. An app adds what a skill can't: nothing to install, a tester that has no access to your code at all, a saved history, a report you can open on any device, and a retest that someone other than the fixer runs. The small skill in this repo joins the two: the app tests, your agent fixes.
@@ -176,7 +180,7 @@ It also gave a fresh-eyes fix list for the new design. From it: the sample repor
 
 The same credit-free method was then pointed at four live apps that are known to work: three built on DeepSpace (GitHub Wrapped, ClaimCheck, Taskspace) and Hacker News. All four went through the fix-list code cleanly, with five or six problems each.
 
-- Two of the DeepSpace apps stop a newcomer at sign-in, so the test never reached the product. The report listed the wall as a problem but did not say what to do next. It now shows a notice that points to the test login ([src/lib/test-limit.ts](src/lib/test-limit.ts), `hitSignInWall`). The check was run against every session saved in the account, real and stand-in, with no false alarms.
+- Two of the DeepSpace apps stop a newcomer at sign-in, so the test never reached the product. The report listed the wall as a problem but did not say what to do next. It now shows a notice that points to the test login ([src/lib/test-limit.ts](src/lib/test-limit.ts), `hitSignInWall`), and a walled run lists no fix items at all, so the notice is the whole report instead of invented problems about the sign-in screen. The check was run against every session saved in the account, real and stand-in, with no false alarms.
 - On one app the browser read counters at 0 before their count-up animation finished. The tester is now told to look once more before calling a loading page broken.
 - One finding repeated on three DeepSpace apps, this one included: the shared sign-in box is titled "Sign in to DeepSpace" on another product's page, and its email form has no visible way to create an account. That is feedback for the platform, found by pointing the tool at its own ecosystem.
 
