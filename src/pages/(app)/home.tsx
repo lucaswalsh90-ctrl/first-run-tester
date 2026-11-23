@@ -15,6 +15,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthOverlay, useAuthStatus, useMutations, useQuery } from 'deepspace'
 import { Inbox } from 'lucide-react'
+import { SiteMark } from '@/components/SiteMark'
 import { TestLoginBox } from '@/components/TestLoginBox'
 import { Badge, Button, ConfirmModal, EmptyState, Input, Label, Textarea, useToast } from '@/components/ui'
 import { SIGN_IN_COPY } from '@/constants'
@@ -386,19 +387,23 @@ function History({ entries }: { entries: HistoryEntry[] }) {
 
 function SiteSummary({ name, url, goal }: { name: string; url: string; goal: string }) {
   return (
-    <div className="min-w-0">
-      <p className="text-lg font-semibold text-foreground">{name}</p>
-      <a
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        className="block truncate text-sm text-muted-foreground underline-offset-4 hover:underline"
-      >
-        {url}
-      </a>
-      <p className="mt-2 text-muted-foreground">
-        <span className="text-foreground">Goal:</span> {goal}
-      </p>
+    <div className="flex min-w-0 gap-3">
+      {/* The app's own icon, or a coloured letter, so several apps are easy to tell apart. */}
+      <SiteMark key={url} name={name} url={url} />
+      <div className="min-w-0">
+        <p className="text-lg font-semibold text-foreground">{name}</p>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="block truncate text-sm text-muted-foreground underline-offset-4 hover:underline"
+        >
+          {url}
+        </a>
+        <p className="mt-2 text-muted-foreground">
+          <span className="text-foreground">Goal:</span> {goal}
+        </p>
+      </div>
     </div>
   )
 }
