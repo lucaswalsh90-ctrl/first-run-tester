@@ -11,7 +11,7 @@ import { useState } from 'react'
 import { Button, useToast } from '@/components/ui'
 import { ManualCopy } from '@/components/ManualCopy'
 import { copyText } from '@/lib/copy'
-import { SKILL_ASK, SKILL_INSTALL, agentCommand, agentLinks, allFixPrompts, asExample, unfixed } from '@/lib/handoff'
+import { SKILL_ASK, SKILL_INSTALL, agentCommand, agentLinks, allFixPrompts, asExample, exampleAgentLinks, unfixed } from '@/lib/handoff'
 import { readFolder, saveFolder } from '@/lib/prefill'
 import type { Issue } from '@/lib/types'
 
@@ -41,7 +41,8 @@ export function AgentHandoff({
   const todo = unfixed(issues).length
   if (todo === 0) return null
   const command = appName && runId ? agentCommand(appName, runId) : null
-  const links = appName && runId ? agentLinks(appName, runId, site, folder) : []
+  // The sample has no report of the visitor's own to fetch, so its buttons carry an example prompt.
+  const links = example ? exampleAgentLinks(site) : appName && runId ? agentLinks(appName, runId, site, folder) : []
 
   async function copy(text: string, what: string) {
     if (!(await copyText(text))) {
@@ -86,18 +87,11 @@ export function AgentHandoff({
       </div>
       {manual && <ManualCopy text={manual.text} />}
 
-      {/* The sample has no report of the visitor's own, so the open-in-agent links can't work here.
-          Without this line nobody looking at the sample would know they exist. */}
-      {example && (
-        <p className="mt-4 text-muted-foreground">
-          On your own report you don't have to copy: one click opens Claude Code, Cursor or Codex with the prompt
-          already in it.
-        </p>
-      )}
-
       {links.length > 0 && (
         <div className="mt-4 border-t border-border pt-4">
-          <p className="font-medium text-foreground">Or open your coding agent with the prompt already in it</p>
+          <p className="font-medium text-foreground">
+            {example ? 'Or see it open your coding agent' : 'Or open your coding agent with the prompt already in it'}
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {links.map((link) => (
               <a
@@ -111,7 +105,9 @@ export function AgentHandoff({
             ))}
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            It opens on this computer with the prompt waiting. Nothing is sent until you press Enter.
+            {example
+              ? 'It opens on this computer with an example prompt that tells the agent to stop. On your own report the prompt fetches your fix list. Nothing is sent until you press Enter.'
+              : 'It opens on this computer with the prompt waiting. Nothing is sent until you press Enter.'}
           </p>
           {pressed && (
             <div className="mt-3 flex flex-wrap items-center gap-3" role="status">
@@ -124,26 +120,31 @@ export function AgentHandoff({
               </Button>
             </div>
           )}
-          <label htmlFor="app-folder" className="mt-4 block font-medium text-foreground">
-            Your app's folder on this computer (optional)
-          </label>
-          <input
-            id="app-folder"
-            type="text"
-            value={folder}
-            onChange={(e) => {
-              setFolder(e.target.value)
-              saveFolder(site.url, e.target.value)
-            }}
-            placeholder="/Users/you/projects/my-app"
-            spellCheck={false}
-            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
-          />
-          <p className="mt-1 text-sm text-muted-foreground">
-            {folder.trim()
-              ? 'Claude Code and Codex will open in this folder. It is saved in this browser only.'
-              : 'Without it the agent opens in your home folder and asks where the code is. Saved in this browser only.'}
-          </p>
+          {/* A folder only matters for a prompt that edits code, so the sample leaves it out. */}
+          {!example && (
+            <>
+              <label htmlFor="app-folder" className="mt-4 block font-medium text-foreground">
+                Your app's folder on this computer (optional)
+              </label>
+              <input
+                id="app-folder"
+                type="text"
+                value={folder}
+                onChange={(e) => {
+                  setFolder(e.target.value)
+                  saveFolder(site.url, e.target.value)
+                }}
+                placeholder="/Users/you/projects/my-app"
+                spellCheck={false}
+                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring"
+              />
+              <p className="mt-1 text-sm text-muted-foreground">
+                {folder.trim()
+                  ? 'Claude Code and Codex will open in this folder. It is saved in this browser only.'
+                  : 'Without it the agent opens in your home folder and asks where the code is. Saved in this browser only.'}
+              </p>
+            </>
+          )}
         </div>
       )}
 

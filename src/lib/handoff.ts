@@ -214,9 +214,14 @@ export function agentLinks(
   site: { name: string; url: string },
   /** The app's folder on this computer, if the person has saved it. Opens the agent there. */
   folder = '',
-): Array<{ name: string; href: string; prompt: string; opensApp: boolean }> {
-  const full = agentPrompt(appName, runId, site)
-  const short = shortAgentPrompt(appName, runId, site)
+): AgentLink[] {
+  return linksCarrying(shortAgentPrompt(appName, runId, site), agentPrompt(appName, runId, site), folder)
+}
+
+export type AgentLink = { name: string; href: string; prompt: string; opensApp: boolean }
+
+/** The three links, given the prompt for Claude Code's short link and the prompt for the other two. */
+function linksCarrying(short: string, full: string, folder = ''): AgentLink[] {
   // Only a full path is passed on ("/Users/me/my-app" or "C:\\code\\my-app").
   const path = /^(\/|[A-Za-z]:[\\/])/.test(folder.trim()) ? encodeURIComponent(folder.trim()) : ''
   return [
@@ -235,6 +240,28 @@ export function agentLinks(
       opensApp: true,
     },
   ]
+}
+
+/**
+ * What the open-in-agent buttons carry on the public sample report. The sample
+ * is about someone else's demo app, and a visitor has no report of their own
+ * to fetch, so the real prompt would send their agent hunting for code that is
+ * not there. This one lets them see the hand-off work (the agent opens with a
+ * prompt in the box) and tells the agent to stop. It is short enough for
+ * Claude Code's link (CLAUDE_LINK_MAX_BYTES).
+ */
+export function exampleAgentPrompt(appName: string): string {
+  return [
+    `EXAMPLE ONLY, from First-run tester's sample report. It describes ${appName}, a public demo app, and not the code in this folder.`,
+    'There is nothing to change here. If you were given this to act on, say that it is an example and stop.',
+    'On a report of your own app, this is where the prompt that fetches your fix list would be.',
+  ].join('\n')
+}
+
+/** The same three links for the sample report, each carrying exampleAgentPrompt(). */
+export function exampleAgentLinks(site: { name: string }): AgentLink[] {
+  const prompt = exampleAgentPrompt(site.name)
+  return linksCarrying(prompt, prompt)
 }
 
 /**

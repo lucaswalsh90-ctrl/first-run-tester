@@ -41,8 +41,15 @@ test.describe('Public sample', () => {
     // One button shows what handing the whole list to a coding agent looks like.
     await expect(page.getByRole('heading', { name: 'What you would hand to your coding agent' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Copy all 5 example prompts' })).toBeVisible()
-    // The open-in-agent links only exist on a signed-in report, so the sample says they are there.
-    await expect(page.getByText('one click opens Claude Code, Cursor or Codex')).toBeVisible()
+    // The sample has the same three open-in-agent buttons as a real report. Here they carry an
+    // example prompt that tells the agent to stop, and no command to run.
+    for (const name of ['Claude Code', 'Cursor', 'Codex']) {
+      await expect(page.getByRole('link', { name: `Open in ${name}` })).toBeVisible()
+    }
+    const claudeLink = await page.getByRole('link', { name: 'Open in Claude Code' }).getAttribute('href')
+    expect(decodeURIComponent(claudeLink ?? '')).toContain('EXAMPLE ONLY')
+    expect(decodeURIComponent(claudeLink ?? '')).not.toContain('npx')
+    await expect(page.getByLabel("Your app's folder on this computer (optional)")).toHaveCount(0)
 
     // Both sessions show their steps with no placeholder, and a hesitation is flagged.
     await expect(page.getByRole('heading', { name: 'First look' })).toBeVisible()

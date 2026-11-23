@@ -13,6 +13,8 @@ import {
   agentPrompt,
   allFixPrompts,
   asExample,
+  exampleAgentLinks,
+  exampleAgentPrompt,
   shortAgentPrompt,
   unfixed,
   withWorkSteps,
@@ -142,6 +144,31 @@ describe('shortAgentPrompt', () => {
     expect(size(cut)).toBeLessThanOrEqual(CLAUDE_LINK_MAX_BYTES)
     expect(cut).toContain(agentCommand('first-run-tester', 'run_123'))
     expect(cut).toContain('Do not commit, push or deploy')
+  })
+})
+
+describe('exampleAgentLinks', () => {
+  const links = exampleAgentLinks({ name: 'TodoMVC demo' })
+
+  it('gives the sample report the same three buttons', () => {
+    expect(links.map((l) => l.name)).toEqual(['Claude Code', 'Cursor', 'Codex'])
+    expect(links[0].href.startsWith('claude-cli://open?q=')).toBe(true)
+    expect(links.map((l) => l.opensApp)).toEqual([true, false, true])
+  })
+
+  it('carries a prompt that tells an agent it is an example and to stop, and no command to run', () => {
+    for (const link of links) {
+      expect(link.prompt).toBe(exampleAgentPrompt('TodoMVC demo'))
+      expect(link.prompt.startsWith('EXAMPLE ONLY')).toBe(true)
+      expect(link.prompt).toContain('TodoMVC demo, a public demo app')
+      expect(link.prompt).toContain('say that it is an example and stop')
+      expect(link.prompt).not.toContain('npx')
+      expect(link.href).not.toContain('cwd=')
+    }
+  })
+
+  it("fits Claude Code's link", () => {
+    expect(new TextEncoder().encode(links[0].prompt).length).toBeLessThanOrEqual(CLAUDE_LINK_MAX_BYTES)
   })
 })
 
