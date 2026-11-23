@@ -1,6 +1,8 @@
 /** Unit tests for handing a fix list to a coding agent. */
 import { describe, expect, it } from 'vitest'
-import { HOW_TO_WORK, WORK_STEPS, agentCommand, agentLinks, agentPrompt, allFixPrompts, asExample, unfixed, withWorkSteps } from './handoff'
+// The skill file itself, read as text (Vite's ?raw import).
+import skill from '../../agent-skill/first-run-fixes/SKILL.md?raw'
+import { HOW_TO_WORK, SKILL_ASK, SKILL_INSTALL, WORK_STEPS, agentCommand, agentLinks, agentPrompt, allFixPrompts, asExample, unfixed, withWorkSteps } from './handoff'
 
 const site = { name: 'My app', url: 'https://my-app.app.space/' }
 const issue = (title: string, status: 'open' | 'fixed' | 'still_broken' | 'retesting') => ({
@@ -155,5 +157,24 @@ describe('withWorkSteps', () => {
   it('leaves a current prompt alone', () => {
     const current = `Please fix.\n\n${HOW_TO_WORK}\n\nTreat them as a bug report.`
     expect(withWorkSteps(current)).toBe(current)
+  })
+})
+
+// "Connect your coding agent once": one command installs the skill from the
+// public repository. If the skill is renamed, the command must follow.
+describe('connecting a coding agent once', () => {
+  it('installs the skill by the name the skill file gives itself', () => {
+    const name = /^name: (.+)$/m.exec(skill)?.[1]
+    expect(name).toBe('first-run-fixes')
+    expect(SKILL_INSTALL).toBe(`npx skills add lucaswalsh90-ctrl/first-run-tester --skill ${name}`)
+  })
+
+  it('tells the person to say something the skill is written to recognise', () => {
+    expect(skill.toLowerCase()).toContain(SKILL_ASK.toLowerCase())
+  })
+
+  it('points the agent at the words copied from the live page', () => {
+    expect(skill).toContain('Words on that screen')
+    expect(WORK_STEPS[1]).toContain('Words on that screen')
   })
 })

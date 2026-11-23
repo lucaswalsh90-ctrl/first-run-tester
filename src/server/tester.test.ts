@@ -9,6 +9,7 @@ import {
   firstJsonObject,
   fixPrompt,
   isFinished,
+  keepWhatWasSeen,
   loginCredentials,
   planFullTest,
   planRetest,
@@ -363,5 +364,78 @@ describe('what the agent is told about its own browser', () => {
       expect(plan.task).toContain('look once more before you call it broken')
       expect(plan.task).toContain('no graphics card')
     }
+  })
+})
+
+// The coding agent that fixes a problem has never seen the screen. The page
+// address and the exact words on it are how it finds the right file.
+describe('tying a problem to the code', () => {
+  const reply = (text: string) => ({ content: [{ type: 'text', text }] })
+  const issue = { severity: 2 as const, title: 't', detail: 'd', where: 'w', change: 'c', check: 'k' }
+  const sessions = [
+    {
+      steps: [
+        { step: 1, action: 'click', description: 'Clicked "Get started free" in the hero', confidence: 0.8, url: 'https://my-app.com/' },
+        { step: 2, action: 'click', description: 'Opened the form titled "Add an app"', confidence: 0.6, url: 'https://my-app.com/home' },
+      ],
+      report: '',
+      confusing: 'The button "Run a first-run test" stayed grey.',
+    },
+  ]
+
+  it('reads the page and up to three on-screen phrases, with stray quote marks removed', () => {
+    const out = readSummary(
+      reply(
+        JSON.stringify({
+          summary: 's',
+          issues: [{ ...issue, page: ' https://my-app.com/home ', search: ['"Add an app"', 'Add an app', 'x', 'a', 'b b', 'c c', 'd d'] }],
+        }),
+      ),
+    )
+    expect(out.issues[0].page).toBe('https://my-app.com/home')
+    expect(out.issues[0].search).toEqual(['Add an app', 'b b', 'c c'])
+  })
+
+  it('leaves both out when the reply has neither, or has something that is not an address', () => {
+    const out = readSummary(reply(JSON.stringify({ summary: 's', issues: [{ ...issue, page: 'the home page', search: 'nope' }] })))
+    expect(out.issues[0]).not.toHaveProperty('page')
+    expect(out.issues[0]).not.toHaveProperty('search')
+  })
+
+  it('keeps only words a session really wrote, and only a page a step was on', () => {
+    const [kept] = keepWhatWasSeen(
+      [{ ...issue, page: 'https://my-app.com/home/', search: ['add an app', 'Run a first-run test', 'Start free trial'] }],
+      sessions,
+    )
+    // Matching ignores capitals and a trailing slash. The invented phrase is gone.
+    expect(kept.search).toEqual(['add an app', 'Run a first-run test'])
+    expect(kept.page).toBe('https://my-app.com/home/')
+
+    const [dropped] = keepWhatWasSeen([{ ...issue, page: 'https://my-app.com/pricing', search: ['Start free trial'] }], sessions)
+    expect(dropped).not.toHaveProperty('page')
+    expect(dropped).not.toHaveProperty('search')
+    expect(dropped.title).toBe('t')
+  })
+
+  it('puts both in the fix prompt, and says nothing when there is nothing to say', () => {
+    const site = { name: 'My app', url: 'https://my-app.com' }
+    const withBoth = fixPrompt(site, { ...issue, page: 'https://my-app.com/home', search: ['Add an app', 'Run a first-run test'] })
+    expect(withBoth).toContain('Page: https://my-app.com/home')
+    expect(withBoth).toContain('Words on that screen, to search the code for: "Add an app", "Run a first-run test"')
+    const plain = fixPrompt(site, issue)
+    expect(plain).not.toContain('Page:')
+    expect(plain).not.toContain('Words on that screen, to search the code for:')
+  })
+
+  it('asks every tester to quote the exact words on a button, link or heading', () => {
+    const [first, main] = planFullTest('https://example.com/', 'do a thing')
+    const retest = planRetest('https://example.com/', 'do a thing', { title: 't', check: 'c' })
+    for (const plan of [first, main, retest]) expect(plan.task).toContain('give its exact words in quotation marks')
+  })
+
+  it('asks the fix-list writer for words copied from the website, never invented', () => {
+    const request = summaryRequest({ name: 'n', url: 'https://example.com', goal: 'g' }, [])
+    expect(request.system).toContain('"search"')
+    expect(request.system).toContain('never tidy or invent')
   })
 })

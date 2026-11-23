@@ -11,7 +11,7 @@ import { useState } from 'react'
 import { Button, useToast } from '@/components/ui'
 import { ManualCopy } from '@/components/ManualCopy'
 import { copyText } from '@/lib/copy'
-import { agentCommand, agentLinks, allFixPrompts, asExample, unfixed } from '@/lib/handoff'
+import { SKILL_ASK, SKILL_INSTALL, agentCommand, agentLinks, allFixPrompts, asExample, unfixed } from '@/lib/handoff'
 import { readFolder, saveFolder } from '@/lib/prefill'
 import type { Issue } from '@/lib/types'
 
@@ -121,6 +121,26 @@ export function AgentHandoff({
               : 'Without it the agent opens in your home folder and asks where the code is. Saved in this browser only.'}
           </p>
         </div>
+      )}
+
+      {command && (
+        <details className="mt-4 border-t border-border pt-3">
+          <summary className="cursor-pointer font-medium text-foreground">
+            Or connect your coding agent once, and never paste again
+          </summary>
+          <p className="mt-2 text-muted-foreground">
+            Run this once in your app's folder. It adds a skill, which is a small text file of instructions, so your
+            agent knows how to fetch your fix list and work through it. After that you only have to say:{' '}
+            <strong className="text-foreground">"{SKILL_ASK}"</strong>.
+          </p>
+          <pre className="mt-2 overflow-x-auto rounded-md bg-muted p-3 font-mono text-sm text-foreground">{SKILL_INSTALL}</pre>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <Button size="sm" variant="outline" onClick={() => copy(SKILL_INSTALL, 'Command')}>Copy the command</Button>
+            <span className="text-sm text-muted-foreground">
+              It adds that one file to your project. Works with Claude Code, Cursor and Codex.
+            </span>
+          </div>
+        </details>
       )}
 
       {command && (

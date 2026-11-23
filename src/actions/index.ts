@@ -30,6 +30,7 @@ import {
   planRetest,
   readBrowserAgentRun,
   readTestLogin,
+  keepWhatWasSeen,
   readSummary,
   reportEmail,
   summaryRequest,
@@ -254,7 +255,9 @@ async function finishFullTest(
     try {
       const ai = await tools.integration('anthropic/chat-completion', summaryRequest(site.data, sessions))
       if (!ai.success) throw new Error(ai.error)
-      summary = readSummary(ai.data)
+      const read = readSummary(ai.data)
+      // Drop any page address or on-screen words the sessions did not record.
+      summary = { summary: read.summary, issues: keepWhatWasSeen(read.issues, sessions) }
     } catch (e) {
       // The sessions are already paid for, so try the fix list again on the
       // next check instead of throwing the whole test away.

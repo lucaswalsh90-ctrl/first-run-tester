@@ -37,7 +37,7 @@ export const FOLDER_CHECK =
  */
 export const WORK_STEPS = [
   FOLDER_CHECK,
-  'Find the code before you change anything. Search this repository for the words quoted in the problem (a button label, a heading, the page address) to find the file that draws that screen.',
+  'Find the code before you change anything. Search this repository for the words quoted in the problem (a button label, a heading, the page address) to find the file that draws that screen. If the problem has a "Words on that screen" line, start with those.',
   'Make the change directly in this repository. Keep it small and leave unrelated behaviour alone.',
   'Check your work from the terminal. Run the project\'s own checks (look in package.json or the README for the type check, the tests and the build) and fix anything you broke. If the app can run on this computer, start it and try the "Done when" line yourself.',
   'Do not commit, push or deploy. Tell me which files you edited and why, which commands you ran and what they showed, and anything you could not check.',
@@ -99,6 +99,22 @@ export function allFixPrompts(site: { name: string; url: string }, issues: Hando
     .join('\n')
     .trimEnd()
 }
+
+/**
+ * Connecting a coding agent once, so there is nothing to paste after that.
+ *
+ * A skill is a small text file of instructions that Claude Code, Cursor and
+ * Codex all read. This command copies ours (agent-skill/first-run-fixes) from
+ * the app's public repository into the person's project. From then on the
+ * agent knows how to fetch the fix list and how to work through it, and the
+ * person only has to say SKILL_ASK.
+ *
+ * It is the closest thing to "plugging in" an agent that a website can offer:
+ * the app also answers over MCP, but that needs a credential the platform has
+ * no safe way to hand a person yet, while the command line reuses their login.
+ */
+export const SKILL_INSTALL = 'npx skills add lucaswalsh90-ctrl/first-run-tester --skill first-run-fixes'
+export const SKILL_ASK = 'Fix what the first-run test found'
 
 /** The command a coding agent runs to fetch this report's fix list itself. */
 export function agentCommand(appName: string, runId: string): string {

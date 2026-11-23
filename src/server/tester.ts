@@ -146,6 +146,16 @@ const PATIENCE_NOTE =
   'message may have opened without the page moving. If you still cannot tell whether it worked, say that you ' +
   'could not tell, and do not call it broken.'
 
+/**
+ * A fix prompt is only as good as what the coding agent can search for. The
+ * agent that fixes the app has never seen the screen, so the words on it are
+ * the bridge to the code: "Get started free" finds the file that draws that
+ * button. So the tester is asked to quote them exactly.
+ */
+const QUOTE_NOTE =
+  ' When you mention a button, link, heading or message, give its exact words in quotation marks, ' +
+  'the way they appear on the page.'
+
 /** A full test is two missions that run at the same time, each in a fresh browser. */
 export function planFullTest(url: string, goal: string, hasLogin = false): MissionPlan[] {
   return [
@@ -158,6 +168,7 @@ export function planFullTest(url: string, goal: string, hasLogin = false): Missi
         STAY_ON_SITE +
         GRAPHICS_NOTE +
         PATIENCE_NOTE +
+        QUOTE_NOTE +
         ' After each action, say in one plain sentence what you did and what you learned. ' +
         'Then list anything that was unclear, hidden, slow to find or confusing for a newcomer.',
       maxSteps: 6,
@@ -172,6 +183,7 @@ export function planFullTest(url: string, goal: string, hasLogin = false): Missi
         STAY_ON_SITE +
         GRAPHICS_NOTE +
         PATIENCE_NOTE +
+        QUOTE_NOTE +
         ' After each action, say in one plain sentence what you did and whether it worked. ' +
         'Then list anything that was unclear, hidden, slow to find or confusing, and say whether you reached the goal.',
       maxSteps: LIMITS.maxStepsPerMission + (hasLogin ? EXTRA_STEPS_FOR_LOGIN : 0),
@@ -197,6 +209,7 @@ export function planRetest(
       STAY_ON_SITE +
       GRAPHICS_NOTE +
         PATIENCE_NOTE +
+        QUOTE_NOTE +
       ' Describe each action in one plain sentence. ' +
       'Finally, answer fixed = true only if a newcomer would no longer run into the problem. ' +
       'If the graphics limit stopped you from checking, leave fixed out of your answer.',
@@ -304,6 +317,10 @@ export interface DraftIssue {
   where: string
   change: string
   check: string
+  /** The page address where the newcomer hit it, as a step recorded it. */
+  page?: string
+  /** Exact words shown on that screen, for the coding agent to search the code for. */
+  search?: string[]
 }
 
 const SUMMARY_SYSTEM = `You review reports from an AI agent that used a website as a first-time user.
@@ -338,9 +355,16 @@ Reply with JSON only, no prose, in exactly this shape:
  "issues": [{"severity": 1, "title": "short name of the problem",
    "detail": "what the newcomer ran into, citing the step",
    "where": "the page or screen and the element involved",
+   "page": "the page address where it happened, copied from that step",
+   "search": ["up to three short pieces of text shown on that screen, copied exactly"],
    "change": "the smallest change that would fix it",
    "check": "how someone would confirm the fix by using the site"}]}
-Return at most 6 issues. Keep every field to one or two short sentences.`
+Return at most 6 issues. Keep every field to one or two short sentences.
+
+"search" is for the developer's coding agent, which will search the website's code for those words
+to find the right file. Copy only words the reports quote from the website itself: a button label,
+a heading, a message, a placeholder. Copy them character for character and never tidy or invent
+them. Leave the list empty if the reports quote none.`
 
 export function summaryRequest(
   site: { name: string; url: string; goal: string },
@@ -448,9 +472,53 @@ export function readSummary(response: unknown): { summary: string; issues: Draft
         where: String(i.where ?? ''),
         change: String(i.change ?? ''),
         check: String(i.check ?? ''),
+        ...readWhereInCode(i),
       }
     })
   return { summary: String(parsed.summary ?? ''), issues }
+}
+
+/** The page address and the on-screen words of one problem, tidied and capped. */
+function readWhereInCode(i: Record<string, unknown>): Pick<DraftIssue, 'page' | 'search'> {
+  const page = typeof i.page === 'string' && /^https?:\/\/\S+$/.test(i.page.trim()) ? i.page.trim().slice(0, 300) : ''
+  const search = (Array.isArray(i.search) ? i.search : [])
+    .filter((q): q is string => typeof q === 'string')
+    .map((q) => q.trim().replace(/^["'“‘]+|["'”’]+$/g, '').trim())
+    .filter((q, n, all) => q.length >= 2 && q.length <= 80 && all.indexOf(q) === n)
+    .slice(0, 3)
+  return { ...(page ? { page } : {}), ...(search.length ? { search } : {}) }
+}
+
+/**
+ * Keeps only what the sessions really recorded.
+ *
+ * The fix-list writer is an AI, and a search phrase it made up would send a
+ * coding agent hunting for words that are not in the code. So a phrase stays
+ * only if a session wrote those exact words, and a page address stays only if
+ * a step was on that page. Plain code, no AI.
+ */
+export function keepWhatWasSeen(
+  issues: DraftIssue[],
+  sessions: Array<Partial<Pick<MissionResult, 'steps' | 'report' | 'confusing'>>>,
+): DraftIssue[] {
+  const flat = (text: string) => text.toLowerCase().replace(/\s+/g, ' ')
+  const seen = flat(
+    sessions
+      .flatMap((m) => [...(m.steps ?? []).map((s) => s.description), m.report ?? '', m.confusing ?? ''])
+      .join('\n'),
+  )
+  // "https://app/x/" and "https://app/x#top" are the same page as "https://app/x".
+  const samePage = (url: string) => url.trim().replace(/#.*$/, '').replace(/\/+$/, '').toLowerCase()
+  const pages = new Set(sessions.flatMap((m) => (m.steps ?? []).map((s) => samePage(s.url ?? ''))).filter(Boolean))
+  return issues.map((issue) => {
+    const search = (issue.search ?? []).filter((q) => seen.includes(flat(q)))
+    const { page: _page, search: _search, ...rest } = issue
+    return {
+      ...rest,
+      ...(issue.page && pages.has(samePage(issue.page)) ? { page: issue.page } : {}),
+      ...(search.length ? { search } : {}),
+    }
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -469,6 +537,12 @@ export function fixPrompt(site: { name: string; url: string }, issue: DraftIssue
     `Problem a first-time user hit: ${issue.title}`,
     `What happened: ${issue.detail}`,
     `Where: ${issue.where}`,
+    // The two lines that tie the problem to the code: the page it was on and
+    // the words on that screen. Only present when the sessions recorded them.
+    ...(issue.page ? [`Page: ${issue.page}`] : []),
+    ...(issue.search?.length
+      ? [`Words on that screen, to search the code for: ${issue.search.map((q) => `"${q}"`).join(', ')}`]
+      : []),
     `Change to make: ${issue.change}`,
     `Done when: ${issue.check}`,
     '',
